@@ -34,13 +34,10 @@
     --sb-border: rgba(255,255,255,0.08);
     --sb-accent: #e7e9ea;
 
-    /* 状態アクセント（必要最低限） */
+    /* 状態アクセント（必要最低限。要確認は理由を問わず単一色。--c-alert系は汎用エラー配色として別用途に残す） */
     --c-review: #a9781f;
     --c-review-bg: #faf2e2;
     --c-review-border: #ecdab3;
-    --c-missing: #5c6773;
-    --c-missing-bg: #eef0f2;
-    --c-missing-border: #d7dce1;
     --c-alert: #ab3126;
     --c-alert-bg: #fbeae8;
     --c-alert-border: #f0c6c0;
@@ -214,8 +211,6 @@
   .badge.confirming { background: var(--surface-2); color: var(--text-secondary); border-color: var(--border-strong); }
   .badge.final { background: var(--c-success-bg); color: var(--c-success); border-color: var(--c-success-border); }
   .badge.review { background: var(--c-review-bg); color: var(--c-review); border-color: var(--c-review-border); }
-  .badge.missing { background: var(--c-missing-bg); color: var(--c-missing); border-color: var(--c-missing-border); }
-  .badge.alert { background: var(--c-alert-bg); color: var(--c-alert); border-color: var(--c-alert-border); }
   .badge.web { background: var(--c-web-bg); color: var(--c-web); border-color: var(--c-web-border); }
   .badge.ok { background: var(--surface-2); color: var(--text-secondary); border-color: var(--border); }
   .badge .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
@@ -314,10 +309,6 @@
   .status-chip .dot { width: 7px; height: 7px; border-radius: 50%; }
   .status-chip.review { border-color: var(--c-review-border); background: var(--c-review-bg); color: var(--c-review); }
   .status-chip.review .dot { background: var(--c-review); }
-  .status-chip.missing { border-color: var(--c-missing-border); background: var(--c-missing-bg); color: var(--c-missing); }
-  .status-chip.missing .dot { background: var(--c-missing); }
-  .status-chip.alert { border-color: var(--c-alert-border); background: var(--c-alert-bg); color: var(--c-alert); }
-  .status-chip.alert .dot { background: var(--c-alert); }
   .status-chip.web { border-color: var(--c-web-border); background: var(--c-web-bg); color: var(--c-web); cursor: default; }
   .status-chip.web .dot { background: var(--c-web); }
   .status-chip:hover:not(.web) { filter: brightness(0.97); }
@@ -332,7 +323,6 @@
   table.summary tr.clickable:hover td { background: #f7f8f8; }
   table.summary tr.selected td { background: var(--surface-2); }
   .val-cell { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-  .val-missing { color: var(--c-missing); }
   .val-web-note { color: var(--text); border-bottom: 2px dotted var(--c-web); }
 
   table.itemlist { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -387,14 +377,11 @@
   .inspector-scroll { flex: 1; overflow-y: auto; padding: 16px 18px 8px; }
   .inspector-section-label { font-size: 11px; color: var(--text-meta); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; margin: 0 0 8px; }
 
-  /* 要確認一覧（overviewモード） */
+  /* 要確認一覧（overviewモード）。理由（missing/conflict/ambiguous/multiple_candidates/parse_error）ごとにグルーピングするが、
+     色は「要確認」単一色のみを使い、理由ごとに見た目を変えない */
   .overview-group { margin-bottom: 18px; }
-  .overview-group-head { display: flex; align-items: center; gap: 7px; margin-bottom: 8px; font-size: 12px; font-weight: 700; }
-  .overview-group-head .dot { width: 7px; height: 7px; border-radius: 50%; }
-  .overview-group-head.review .dot { background: var(--c-review); } .overview-group-head.review { color: var(--c-review); }
-  .overview-group-head.missing .dot { background: var(--c-missing); } .overview-group-head.missing { color: var(--c-missing); }
-  .overview-group-head.alert .dot { background: var(--c-alert); } .overview-group-head.alert { color: var(--c-alert); }
-  .overview-group-head.web .dot { background: var(--c-web); } .overview-group-head.web { color: var(--c-web); }
+  .overview-group-head { display: flex; align-items: center; gap: 7px; margin-bottom: 8px; font-size: 12px; font-weight: 700; color: var(--c-review); }
+  .overview-group-head .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--c-review); }
   .overview-row {
     display: flex; justify-content: space-between; align-items: center; gap: 10px;
     border: 1px solid var(--border); background: var(--surface); border-radius: var(--radius-sm);
@@ -697,9 +684,7 @@
         </div>
 
         <div class="status-summary">
-          <button class="status-chip review" onclick="openInspectorOverview()"><span class="dot"></span>要確認 <span id="sumReview">3</span></button>
-          <button class="status-chip missing" onclick="openInspectorOverview()"><span class="dot"></span>不明 <span id="sumMissing">2</span></button>
-          <button class="status-chip alert" onclick="openInspectorOverview()"><span class="dot"></span>アラート <span id="sumAlert">2</span></button>
+          <button class="status-chip review" onclick="openInspectorOverview()"><span class="dot"></span>要確認 <span id="sumReview">7</span></button>
           <span class="status-chip web"><span class="dot"></span>Web補完 <span id="sumWeb">1</span></span>
         </div>
 
@@ -709,16 +694,16 @@
             <tr class="clickable" id="row-requester" onclick="openInspectorField('requester')"><td class="label">依頼元企業</td><td><span class="val-cell" id="cell-requester">東西石油開発株式会社</span></td></tr>
             <tr class="clickable" id="row-projectName" onclick="openInspectorField('projectName')"><td class="label">案件名／プロジェクト名</td><td><span class="val-cell" id="cell-projectName">北海油田 鋼管更新案件</span></td></tr>
             <tr class="clickable" id="row-inquiryDate" onclick="openInspectorField('inquiryDate')"><td class="label">引合日</td><td><span class="val-cell" id="cell-inquiryDate">2026-09-01</span></td></tr>
-            <tr class="clickable" id="row-dueDate" onclick="openInspectorField('dueDate')"><td class="label">回答期限／見積期限</td><td><span class="val-cell" id="cell-dueDate"><span class="badge missing">不明</span></span></td></tr>
+            <tr class="clickable" id="row-dueDate" onclick="openInspectorField('dueDate')"><td class="label">回答期限／見積期限</td><td><span class="val-cell" id="cell-dueDate"><span class="badge review">要確認</span></span></td></tr>
             <tr class="clickable" id="row-country" onclick="openInspectorField('country')"><td class="label">発注国／納入先国</td><td><span class="val-cell" id="cell-country">ノルウェー</span></td></tr>
             <tr class="clickable" id="row-purpose" onclick="openInspectorField('purpose')"><td class="label">用途</td><td><span class="val-cell" id="cell-purpose">海底パイプライン更新</span></td></tr>
             <tr class="clickable" id="row-background" onclick="openInspectorField('background')"><td class="label">案件背景／概要</td><td><span class="val-cell" id="cell-background">既設油田の設備更新に伴う鋼管一括更新</span></td></tr>
             <tr class="clickable" id="row-orderer" onclick="openInspectorField('orderer')"><td class="label">発注者／End User</td><td><span class="val-cell" id="cell-orderer">東西石油開発株式会社</span></td></tr>
             <tr class="clickable" id="row-engCompany" onclick="openInspectorField('engCompany')"><td class="label">エンジニアリング会社</td><td><span class="val-cell" id="cell-engCompany"><span class="badge review">要確認</span><span style="color:var(--text-meta); font-size:12px;">候補2件</span></span></td></tr>
             <tr class="clickable" id="row-epc" onclick="openInspectorField('epc')"><td class="label">EPC</td><td><span class="val-cell" id="cell-epc"><span class="badge review">要確認</span><span style="color:var(--text-meta); font-size:12px;">候補2件</span></span></td></tr>
-            <tr class="clickable" id="row-desiredDelivery" onclick="openInspectorField('desiredDelivery')"><td class="label">希望納期</td><td><span class="val-cell" id="cell-desiredDelivery"><span class="badge alert">アラート</span><span style="color:var(--text-meta); font-size:12px;">資料間で矛盾</span></span></td></tr>
+            <tr class="clickable" id="row-desiredDelivery" onclick="openInspectorField('desiredDelivery')"><td class="label">希望納期</td><td><span class="val-cell" id="cell-desiredDelivery"><span class="badge review">要確認</span><span style="color:var(--text-meta); font-size:12px;">資料間で矛盾</span></span></td></tr>
             <tr class="clickable" id="row-quantityScale" onclick="openInspectorField('quantityScale')"><td class="label">数量感／案件規模</td><td><span class="val-cell" id="cell-quantityScale">約1,200本</span></td></tr>
-            <tr class="clickable" id="row-similarCase" onclick="openInspectorField('similarCase')"><td class="label">類似案件</td><td><span class="val-cell" id="cell-similarCase"><span class="badge missing">不明</span></span></td></tr>
+            <tr class="clickable" id="row-similarCase" onclick="openInspectorField('similarCase')"><td class="label">類似案件</td><td><span class="val-cell" id="cell-similarCase"><span class="badge review">要確認</span></span></td></tr>
             <tr class="clickable" id="row-marketCondition" onclick="openInspectorField('marketCondition')"><td class="label">市況</td><td><span class="val-cell" id="cell-marketCondition"><span class="val-web-note">北海圏の油田開発は増加傾向</span><span class="badge web">Web補完</span></span></td></tr>
           </table>
         </div>
@@ -734,7 +719,7 @@
               <td>1</td><td>シームレス</td><td>ケーシング</td>
               <td class="clickable" id="row-item1Grade" onclick="openInspectorField('item1Grade')"><span id="cell-item1Grade"><span class="badge review">要確認</span></span></td>
               <td>API規格</td><td>244.5mm</td><td>13.8mm</td><td>12m</td>
-              <td class="clickable" id="row-item1Qty" onclick="openInspectorField('item1Qty')"><span id="cell-item1Qty"><span class="badge alert">アラート</span></span></td>
+              <td class="clickable" id="row-item1Qty" onclick="openInspectorField('item1Qty')"><span id="cell-item1Qty"><span class="badge review">要確認</span></span></td>
             </tr>
             <tr>
               <td>2</td><td>溶接</td><td>チュービング</td><td>L80</td><td>Premium</td><td>73mm</td><td>7.0mm</td><td>9.5m</td><td>320本</td>
@@ -809,7 +794,10 @@
         <div class="inspector-eyebrow" id="inspEyebrow">要確認一覧</div>
         <div class="inspector-title-row">
           <span class="inspector-title" id="inspTitle">東西石油開発 - 北海油田 鋼管更新案件</span>
-          <span class="badge" id="inspStatusBadge" hidden>要確認</span>
+          <span style="display:flex; gap:6px; flex-shrink:0;">
+            <span class="badge" id="inspStatusBadge" hidden>要確認</span>
+            <span class="badge web" id="inspWebBadge" hidden>Web補完</span>
+          </span>
         </div>
         <div class="inspector-reason" id="inspReason">確認が必要な項目の一覧です。クリックすると根拠を確認できます。</div>
       </div>
@@ -1042,7 +1030,17 @@
   }
 
   /* ---------- Inspector（右スライド式サイドパネル / SCR-04相当） ---------- */
-  const statusLabel = { ok: '確認不要', missing: '不明', review: '要確認', alert: 'アラート', web: 'Web補完' };
+  /* ユーザー向けステータスは「確認不要 / 要確認」の2値のみ。missing/conflict/ambiguous/multiple_candidates/parse_error は
+     要確認の内部理由として reasonType に保持し、バッジの色分けはせず、Inspector内で日本語ラベルに変換して表示する。
+     Web補完はステータスではなく isWebSupplemented（情報の由来を示す別属性）として保持する。 */
+  const statusLabel = { ok: '確認不要', review: '要確認' };
+  const reasonLabel = {
+    missing: '情報が見つかりません',
+    conflict: '資料間で内容が異なります',
+    ambiguous: '内容が曖昧です',
+    multiple_candidates: '候補が複数あります',
+    parse_error: '資料を正常に読み取れませんでした'
+  };
   const srcIcon = {
     pdf: '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5"/></svg>',
     eml: '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>',
@@ -1061,7 +1059,7 @@
     inquiryDate: { label: '引合日', status: 'ok', reason: '', candidates: [
       { value: '2026-09-01', source: '04_南邦石油_引合メール.eml ヘッダー', type: 'eml', subject: '北海油田鋼管更新案件のご相談', text: '送信日時: <mark>2026-09-01</mark> 10:32' }
     ]},
-    dueDate: { label: '回答期限／見積期限', status: 'missing', reason: 'いずれの資料にも回答期限の記載が見つかりませんでした。', candidates: [] },
+    dueDate: { label: '回答期限／見積期限', status: 'review', reasonType: 'missing', reason: '情報が見つかりません。いずれの資料にも回答期限の記載がありませんでした。', candidates: [] },
     country: { label: '発注国／納入先国', status: 'ok', reason: '', candidates: [
       { value: 'ノルウェー', source: '03_日本海ガス開発_見積依頼書.pdf p.1', type: 'pdf', page: '1 / 2', text: '納入先国: <mark>ノルウェー</mark>' }
     ]},
@@ -1074,30 +1072,30 @@
     orderer: { label: '発注者／End User', status: 'ok', reason: '', candidates: [
       { value: '東西石油開発株式会社', source: '03_日本海ガス開発_見積依頼書.pdf p.1', type: 'pdf', page: '1 / 2', text: '発注者: <mark>東西石油開発株式会社</mark>' }
     ]},
-    engCompany: { label: 'エンジニアリング会社', status: 'review', reason: '複数の資料で異なる値が記載されています（複数候補）。候補から選択するか、修正して確定してください。', candidates: [
+    engCompany: { label: 'エンジニアリング会社', status: 'review', reasonType: 'multiple_candidates', reason: '候補が複数あります。候補から選択するか、修正して確定してください。', candidates: [
       { value: '北海エンジニアリング株式会社', source: '03_日本海ガス開発_見積依頼書.pdf p.1', type: 'pdf', page: '1 / 2', text: 'エンジニアリング会社: <mark>北海エンジニアリング（株）</mark>' },
       { value: 'Hokkai Engineering Co., Ltd.', source: '04_南邦石油_引合メール.eml 本文3段落目', type: 'eml', subject: '北海油田鋼管更新案件のご相談', text: '施工にあたり <mark>Hokkai Engineering Co., Ltd.</mark> 殿がエンジニアリングを担当予定です。' }
     ]},
-    epc: { label: 'EPC', status: 'review', reason: '複数の資料で異なる値が記載されています（複数候補）。候補から選択するか、修正して確定してください。', candidates: [
+    epc: { label: 'EPC', status: 'review', reasonType: 'multiple_candidates', reason: '候補が複数あります。候補から選択するか、修正して確定してください。', candidates: [
       { value: '北洋プラントエンジニアリング', source: '03_日本海ガス開発_見積依頼書.pdf p.2', type: 'pdf', page: '2 / 2', text: 'EPC: <mark>北洋プラントエンジニアリング</mark>' },
       { value: '東西エンジニアリング株式会社', source: '01_東西石油開発_オーダーリスト.xlsx シート1 B3', type: 'excel', sheet: 'シート1（案件情報）', cell: 'B3', text: 'B3セル: <mark>東西エンジニアリング株式会社</mark>' }
     ]},
-    desiredDelivery: { label: '希望納期', status: 'alert', reason: '資料間で異なる値が記載されており、矛盾しています。関係者に確認のうえ確定してください。', candidates: [
+    desiredDelivery: { label: '希望納期', status: 'review', reasonType: 'conflict', reason: '資料間で内容が異なります。関係者に確認のうえ確定してください。', candidates: [
       { value: '2027-03', source: '03_日本海ガス開発_見積依頼書.pdf p.1 納期欄', type: 'pdf', page: '1 / 2', text: '希望納期: <mark>2027年3月</mark>' },
       { value: '2027-06', source: '04_南邦石油_引合メール.eml 本文', type: 'eml', subject: '北海油田鋼管更新案件のご相談', text: '…できれば<mark>2027年6月</mark>までに納入いただきたく…' }
     ]},
     quantityScale: { label: '数量感／案件規模', status: 'ok', reason: '', candidates: [
       { value: '約1,200本', source: '03_日本海ガス開発_見積依頼書.pdf p.1', type: 'pdf', page: '1 / 2', text: '数量規模: <mark>約1,200本</mark>' }
     ]},
-    similarCase: { label: '類似案件', status: 'missing', reason: '類似案件に関する記載が見つかりませんでした。', candidates: [] },
-    marketCondition: { label: '市況', status: 'web', reason: '資料内に記載がないため、Web検索により補完しました。', candidates: [
+    similarCase: { label: '類似案件', status: 'review', reasonType: 'missing', reason: '情報が見つかりません。類似案件に関する記載がありませんでした。', candidates: [] },
+    marketCondition: { label: '市況', status: 'ok', isWebSupplemented: true, reason: '資料内に記載がないため、Web検索により補完しました。', candidates: [
       { value: '北海圏の油田開発は増加傾向', source: '業界レポート（2026年8月）', type: 'web', text: '北海圏における油田設備更新・新規開発は2026年に入り増加傾向にあります。' }
     ]},
-    item1Grade: { label: 'グレード（品目1）', status: 'review', reason: '複数の資料で異なる値が記載されています（複数候補）。', candidates: [
+    item1Grade: { label: 'グレード（品目1）', status: 'review', reasonType: 'multiple_candidates', reason: '候補が複数あります。候補から選択するか、修正して確定してください。', candidates: [
       { value: 'L80', source: '01_東西石油開発_オーダーリスト.xlsx シート2 D5', type: 'excel', sheet: 'シート2（品目一覧）', cell: 'D5', text: 'D5セル: <mark>L80</mark>' },
       { value: 'C90', source: '03_日本海ガス開発_見積依頼書.pdf p.2 品目表', type: 'pdf', page: '2 / 2', text: 'グレード: <mark>C90</mark>' }
     ]},
-    item1Qty: { label: '数量（品目1）', status: 'alert', reason: '資料間で数量が異なり、矛盾しています。', candidates: [
+    item1Qty: { label: '数量（品目1）', status: 'review', reasonType: 'conflict', reason: '資料間で内容が異なります。数量が一致しません。', candidates: [
       { value: '200本', source: '01_東西石油開発_オーダーリスト.xlsx シート2 I5', type: 'excel', sheet: 'シート2（品目一覧）', cell: 'I5', text: 'I5セル: <mark>200</mark>' },
       { value: '180本', source: '04_南邦石油_引合メール.eml 本文', type: 'eml', subject: '北海油田鋼管更新案件のご相談', text: '品目1の数量は<mark>180本</mark>でお願いします。' }
     ]}
@@ -1109,16 +1107,12 @@
   let selectedCandidateIndex = 0;
 
   function updateStatusSummary() {
-    let review = 0, missing = 0, alert = 0, web = 0;
+    let review = 0, web = 0;
     Object.values(inspectorData).forEach(d => {
       if (d.status === 'review') review++;
-      else if (d.status === 'missing') missing++;
-      else if (d.status === 'alert') alert++;
-      else if (d.status === 'web') web++;
+      if (d.isWebSupplemented) web++;
     });
     document.getElementById('sumReview').textContent = review;
-    document.getElementById('sumMissing').textContent = missing;
-    document.getElementById('sumAlert').textContent = alert;
     document.getElementById('sumWeb').textContent = web;
   }
 
@@ -1135,25 +1129,27 @@
     document.getElementById('inspEyebrow').textContent = '要確認一覧';
     document.getElementById('inspTitle').textContent = '確認が必要な項目';
     document.getElementById('inspStatusBadge').hidden = true;
-    document.getElementById('inspReason').textContent = '不明・要確認・アラートの内訳です。項目をクリックすると根拠を確認できます。';
+    document.getElementById('inspReason').textContent = '要確認の理由ごとの内訳です。項目をクリックすると根拠を確認できます。';
     document.getElementById('inspectorConfirmBar').style.display = 'none';
     document.querySelectorAll('table.summary tr, table.itemlist td.clickable').forEach(el => el.classList.remove('selected'));
     renderOverviewContent();
   }
 
   function renderOverviewContent() {
-    const groups = [
-      { key: 'review', label: '要確認' },
-      { key: 'alert', label: 'アラート' },
-      { key: 'missing', label: '不明' },
-      { key: 'web', label: 'Web補完' }
+    // 要確認の理由（reasonType）ごとにグルーピングする。色・バッジは変えず、見出しラベルのみで理由を示す。
+    const reasonGroups = [
+      { key: 'multiple_candidates', label: reasonLabel.multiple_candidates },
+      { key: 'conflict', label: reasonLabel.conflict },
+      { key: 'ambiguous', label: reasonLabel.ambiguous },
+      { key: 'missing', label: reasonLabel.missing },
+      { key: 'parse_error', label: reasonLabel.parse_error }
     ];
     let html = '';
-    groups.forEach(g => {
-      const items = Object.entries(inspectorData).filter(([k, d]) => d.status === g.key);
+    reasonGroups.forEach(g => {
+      const items = Object.entries(inspectorData).filter(([k, d]) => d.status === 'review' && d.reasonType === g.key);
       if (items.length === 0) return;
       html += '<div class="overview-group">';
-      html += '<div class="overview-group-head ' + g.key + '"><span class="dot"></span>' + g.label + '（' + items.length + '）</div>';
+      html += '<div class="overview-group-head"><span class="dot"></span>' + g.label + '（' + items.length + '）</div>';
       items.forEach(([k, d]) => {
         html += '<div class="overview-row" onclick="openInspectorField(\'' + k + '\', true)"><span class="ov-label">' + d.label + '</span><span class="ov-arrow">›</span></div>';
       });
@@ -1193,6 +1189,8 @@
     badge.hidden = false;
     badge.className = 'badge ' + d.status;
     badge.textContent = statusLabel[d.status];
+    const webBadge = document.getElementById('inspWebBadge');
+    webBadge.hidden = !d.isWebSupplemented;
     document.getElementById('inspReason').textContent = d.reason || '抽出根拠のとおりで、確認は不要です。';
 
     let html = '<div class="inspector-section-label">候補値（クリックで比較）</div><div id="candidateList"></div>';
@@ -1256,10 +1254,10 @@
     const val = document.getElementById('confirmInput').value.trim();
     const d = inspectorData[key];
     if (!val) {
-      if (!confirm('値が空です。「不明」として確定しますか？')) return;
-      d.status = 'missing'; d.reason = ''; d.confirmedValue = '';
+      if (!confirm('値が空です。「要確認（情報が見つかりません）」として保存しますか？')) return;
+      d.status = 'review'; d.reasonType = 'missing'; d.reason = reasonLabel.missing; d.confirmedValue = '';
     } else {
-      d.status = 'ok'; d.reason = ''; d.confirmedValue = val;
+      d.status = 'ok'; d.reasonType = undefined; d.reason = ''; d.isWebSupplemented = false; d.confirmedValue = val;
     }
     updateCellDisplay(key);
     updateStatusSummary();
@@ -1271,8 +1269,8 @@
     const d = inspectorData[key];
     const cell = document.getElementById('cell-' + key);
     if (!cell) return;
-    if (d.status === 'missing') {
-      cell.innerHTML = '<span class="badge missing">不明</span>';
+    if (d.status === 'review') {
+      cell.innerHTML = '<span class="badge review">要確認</span>';
     } else {
       cell.innerHTML = d.confirmedValue;
     }
