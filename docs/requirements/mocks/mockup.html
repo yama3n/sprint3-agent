@@ -64,16 +64,18 @@
   }
   .sidebar-top { padding: 18px 16px; }
   .sidebar-brand { font-size: 14px; font-weight: bold; margin-bottom: 24px; }
+  .sidebar-group-label { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: .04em; margin: 18px 0 6px 12px; }
+  .sidebar-group-label:first-of-type { margin-top: 0; }
   .sidebar-nav { list-style: none; padding: 0; margin: 0; }
   .sidebar-nav li { margin-bottom: 4px; }
   .sidebar-nav button {
     width: 100%; text-align: left; padding: 9px 12px; border: none; background: none; color: #cccccc;
     font-size: 13px; border-radius: var(--radius); cursor: pointer; display: flex; align-items: center; gap: 8px;
   }
-  .sidebar-nav button:hover { background: rgba(255,255,255,0.08); color: var(--bg); }
+  .sidebar-nav button:not(.disabled):hover { background: rgba(255,255,255,0.08); color: var(--bg); }
   .sidebar-nav button.active { background: var(--bg); color: var(--text); font-weight: bold; }
-  .sidebar-nav button.disabled { color: #777; cursor: not-allowed; }
-  .sidebar-nav .soon { font-size: 10px; border: 1px solid #777; padding: 1px 5px; border-radius: 8px; margin-left: auto; color: #999; }
+  .sidebar-nav button.disabled { color: #666; cursor: default; pointer-events: none; }
+  .sidebar-nav .soon { font-size: 10px; border: 1px solid #666; padding: 1px 5px; border-radius: 8px; margin-left: auto; color: #888; flex-shrink: 0; }
   .sidebar-count { margin-left: auto; font-size: 11px; background: rgba(255,255,255,0.15); padding: 1px 7px; border-radius: 10px; }
 
   .sidebar-bottom { padding: 14px 16px; border-top: 1px solid rgba(255,255,255,0.15); }
@@ -229,6 +231,17 @@
   .drawer-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
 
   .caption { font-size: 12px; color: var(--text-meta); margin-top: 20px; }
+
+  /* ---------- 補助導線: 全画面共通のヘルプアイコン ---------- */
+  #help-fab {
+    position: fixed; bottom: 20px; right: 20px; z-index: 300;
+    width: 40px; height: 40px; border-radius: 50%;
+    background: var(--text); color: var(--bg); border: none;
+    font-size: 16px; font-weight: bold; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+  }
+  #help-fab:hover { background: var(--text-secondary); }
 </style>
 </head>
 <body>
@@ -265,13 +278,18 @@
   <aside class="sidebar">
     <div class="sidebar-top">
       <div class="sidebar-brand">引合書整理エージェント</div>
+      <div class="sidebar-group-label">主要機能</div>
       <ul class="sidebar-nav">
         <li><button class="nav-item active" data-target="SCR-01" data-filter="all" onclick="navClick(this)">📋 引合一覧</button></li>
         <li><button class="nav-item" data-target="SCR-02" onclick="navClick(this)">＋ 新規アップロード</button></li>
         <li><button class="nav-item" data-target="SCR-01" data-filter="confirming" onclick="navClick(this)">確認中 <span class="sidebar-count">2</span></button></li>
         <li><button class="nav-item" data-target="SCR-01" data-filter="final" onclick="navClick(this)">確定済み <span class="sidebar-count">1</span></button></li>
+      </ul>
+
+      <div class="sidebar-group-label">今後対応</div>
+      <ul class="sidebar-nav">
         <li><button class="nav-item disabled">設定<span class="soon">今後対応</span></button></li>
-        <li><button class="nav-item disabled">ヘルプ<span class="soon">今後対応</span></button></li>
+        <li><button class="nav-item disabled">見積書作成・発行<span class="soon">今後対応</span></button></li>
       </ul>
     </div>
     <div class="sidebar-bottom">
@@ -541,6 +559,9 @@
     </div>
   </div>
 </div>
+
+<!-- 補助導線: 全画面共通のヘルプアイコン（将来的に操作方法/FAQ/この画面について/問い合わせをドロワー等で表示予定。現時点はアイコン表示のみ） -->
+<button id="help-fab" title="ヘルプ" aria-label="ヘルプ">?</button>
 
 <script>
   function login() {
