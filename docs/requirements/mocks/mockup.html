@@ -19,7 +19,8 @@
     --radius-sm: 6px;
     --radius: 10px;
     --radius-lg: 14px;
-    --sidebar-w: 232px;
+    --sidebar-w: 224px;
+    --sidebar-w-collapsed: 64px;
     --header-h: 56px;
     --shadow-1: 0 1px 2px rgba(20,22,24,0.06), 0 1px 1px rgba(20,22,24,0.04);
     --shadow-2: 0 8px 24px rgba(15,16,18,0.14);
@@ -51,6 +52,7 @@
     --c-success-border: #c3e4d0;
   }
   * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
   body {
     margin: 0;
     font-family: "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", sans-serif;
@@ -108,57 +110,70 @@
     width: var(--sidebar-w); flex-shrink: 0; background: var(--sb-grad); color: var(--sb-text);
     display: flex; flex-direction: column; justify-content: space-between;
     position: sticky; top: 0; height: 100vh;
+    transition: width .18s ease;
   }
-  .sidebar-top { padding: 20px 14px 8px; overflow-y: auto; }
-  .sidebar-brand { display: flex; align-items: center; gap: 10px; padding: 0 6px; margin-bottom: 26px; }
+  .sidebar.collapsed { width: var(--sidebar-w-collapsed); }
+  .sidebar-top { padding: 16px 12px 8px; }
+  .sidebar-brand { display: flex; align-items: center; gap: 10px; padding: 4px 4px 0; margin-bottom: 10px; }
   .brand-mark {
     width: 30px; height: 30px; border-radius: 8px; flex-shrink: 0;
     background: linear-gradient(155deg, #3a3e43, #101113); display: flex; align-items: center; justify-content: center;
     border: 1px solid rgba(255,255,255,0.08);
   }
   .brand-mark svg { width: 16px; height: 16px; color: #e9ebec; }
-  .brand-name { font-size: 13px; font-weight: 700; color: #f1f2f3; line-height: 1.3; letter-spacing: .01em; }
+  .brand-name { font-size: 13px; font-weight: 700; color: #f1f2f3; line-height: 1.3; letter-spacing: .01em; white-space: nowrap; }
+  .sidebar-toggle {
+    margin-left: auto; width: 26px; height: 26px; flex-shrink: 0; border-radius: 7px; border: none;
+    background: none; color: var(--sb-text-dim); cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .sidebar-toggle:hover { background: var(--sb-hover-bg); color: #fff; }
+  .sidebar-toggle svg { width: 15px; height: 15px; stroke: currentColor; transition: transform .18s ease; }
+  .sidebar.collapsed .sidebar-toggle svg { transform: rotate(180deg); }
+  .sidebar.collapsed .sidebar-brand { justify-content: center; }
+  .sidebar.collapsed .sidebar-toggle { margin-left: 0; }
 
-  .sidebar-nav { list-style: none; padding: 0; margin: 0 0 6px; }
+  .sidebar-nav { list-style: none; padding: 0; margin: 4px 0 6px; }
   .sidebar-nav li { margin-bottom: 2px; }
   .sidebar-nav button {
     width: 100%; text-align: left; padding: 9px 10px; border: none; background: none; color: var(--sb-text);
     font-size: 13px; border-radius: var(--radius-sm); cursor: pointer; display: flex; align-items: center; gap: 10px;
-    position: relative; transition: background .12s, color .12s;
+    position: relative; transition: background .12s, color .12s; white-space: nowrap; overflow: hidden;
   }
   .sidebar-nav button .ic { width: 17px; height: 17px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
   .sidebar-nav button .ic svg { width: 100%; height: 100%; stroke: currentColor; }
-  .sidebar-nav button:not(.disabled):hover { background: var(--sb-hover-bg); color: #f1f2f3; }
+  .sidebar-nav button:hover { background: var(--sb-hover-bg); color: #f1f2f3; }
   .sidebar-nav button.active { background: var(--sb-active-bg); color: #ffffff; font-weight: 600; }
   .sidebar-nav button.active::before {
-    content: ""; position: absolute; left: -14px; top: 8px; bottom: 8px; width: 3px;
+    content: ""; position: absolute; left: -12px; top: 8px; bottom: 8px; width: 3px;
     border-radius: 2px; background: var(--sb-accent);
   }
-  .sidebar-nav button.disabled { color: var(--sb-text-dim); cursor: default; }
-  .sidebar-nav .soon {
-    font-size: 9.5px; border: 1px solid rgba(255,255,255,0.15); padding: 1px 6px; border-radius: 8px;
-    margin-left: auto; color: var(--sb-text-dim); flex-shrink: 0; letter-spacing: .01em;
-  }
+  .sidebar-nav button.placeholder { color: var(--sb-text-dim); }
   .sidebar-count {
     margin-left: auto; font-size: 11px; font-weight: 600; background: rgba(255,255,255,0.12); color: #f1f2f3;
-    padding: 1px 7px; border-radius: 10px; min-width: 20px; text-align: center;
+    padding: 1px 7px; border-radius: 10px; min-width: 20px; text-align: center; flex-shrink: 0;
   }
-  .sidebar-divider { height: 1px; background: var(--sb-border); margin: 12px 6px 10px; }
+  .sidebar .label { opacity: 1; transition: opacity .1s ease; }
+  .sidebar.collapsed .label { display: none; }
+  .sidebar.collapsed .sidebar-nav button { justify-content: center; padding: 9px 0; }
+  .sidebar.collapsed .sidebar-count { display: none; }
 
-  .sidebar-bottom { padding: 14px 14px 16px; border-top: 1px solid var(--sb-border); }
+  .sidebar-bottom { padding: 12px 12px 16px; border-top: 1px solid var(--sb-border); }
   .user-row { display: flex; align-items: center; gap: 9px; margin-bottom: 10px; padding: 0 2px; }
+  .sidebar.collapsed .user-row { justify-content: center; padding: 0; }
   .user-avatar {
     width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0; font-size: 12px; font-weight: 700;
     background: linear-gradient(155deg, #4a4e54, #202226); color: #f1f2f3; display: flex; align-items: center; justify-content: center;
   }
-  .user-name { font-size: 12.5px; color: #f1f2f3; font-weight: 600; }
-  .user-email { font-size: 11px; color: var(--sb-text-dim); }
+  .user-name { font-size: 12.5px; color: #f1f2f3; font-weight: 600; white-space: nowrap; }
+  .user-email { font-size: 11px; color: var(--sb-text-dim); white-space: nowrap; }
   .logout-btn {
     width: 100%; padding: 8px; font-size: 12.5px; background: none; border: 1px solid rgba(255,255,255,0.14);
     color: var(--sb-text); border-radius: var(--radius-sm); cursor: pointer; display: flex; align-items: center; gap: 8px;
+    white-space: nowrap; overflow: hidden;
   }
+  .sidebar.collapsed .logout-btn { justify-content: center; padding: 8px 0; }
   .logout-btn:hover { background: var(--sb-hover-bg); color: #fff; border-color: rgba(255,255,255,0.22); }
-  .logout-btn .ic { width: 15px; height: 15px; }
+  .logout-btn .ic { width: 15px; height: 15px; flex-shrink: 0; }
   .logout-btn .ic svg { width: 100%; height: 100%; stroke: currentColor; }
 
   .shell-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
@@ -219,14 +234,11 @@
   table.list tbody tr:hover { background: #f7f8f8; }
   table.list tbody tr td:last-child { text-align: right; color: var(--text-meta); white-space: nowrap; }
   .row-arrow::after { content: "›"; margin-left: 8px; color: var(--text-meta); font-weight: 700; }
-  .count-cell { display: flex; gap: 6px; }
   .count-link {
     border: 1px solid var(--border-strong); background: var(--surface); cursor: pointer; font-size: 12px; font-weight: 700;
     padding: 2px 9px; border-radius: 10px; color: var(--text-secondary); display: inline-flex; align-items: center; gap: 4px;
   }
   .count-link.review { color: var(--c-review); border-color: var(--c-review-border); background: var(--c-review-bg); }
-  .count-link.missing { color: var(--c-missing); border-color: var(--c-missing-border); background: var(--c-missing-bg); }
-  .count-link.alert { color: var(--c-alert); border-color: var(--c-alert-border); background: var(--c-alert-bg); }
   .count-link:hover { filter: brightness(0.96); }
   .count-zero { color: var(--text-meta); font-size: 12px; }
 
@@ -270,40 +282,39 @@
   }
 
   .upload-action-row { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
-  .progress-wrap { flex: 1; min-width: 220px; }
-  .progress { border: 1px solid var(--border); border-radius: 20px; height: 8px; overflow: hidden; margin-bottom: 6px; background: var(--surface-2); }
-  .progress-bar { background: linear-gradient(90deg,#3a3d41,#101113); height: 100%; width: 62%; border-radius: 20px; }
+  .progress-wrap { flex: 1; min-width: 260px; }
+  .progress-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .progress { border: 1px solid var(--border); border-radius: 20px; height: 8px; overflow: hidden; background: var(--surface-2); flex: 1; }
+  .progress-bar { background: linear-gradient(90deg,#3a3d41,#101113); height: 100%; width: 0%; border-radius: 20px; transition: width .5s ease; }
+  .progress-pct { font-size: 12px; font-weight: 700; color: var(--text); min-width: 34px; text-align: right; font-variant-numeric: tabular-nums; }
   .loading-note { font-size: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; }
   .spin { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--border-strong); border-top-color: #17181a; animation: spin 0.8s linear infinite; flex-shrink: 0; }
   @keyframes spin { to { transform: rotate(360deg); } }
-  .step-track { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-meta); margin-top: 8px; }
+  .step-track { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-meta); margin-top: 8px; flex-wrap: wrap; }
   .step-track .step { display: flex; align-items: center; gap: 4px; }
   .step-track .step.done { color: var(--c-success); font-weight: 600; }
   .step-track .step.current { color: var(--text); font-weight: 700; }
   .step-track .sep { color: var(--border-strong); }
 
-  /* ---------- SCR-03 詳細（左：本体 / 右：Inspector） ---------- */
+  /* ---------- SCR-03 詳細 ---------- */
   .detail-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 14px; flex-wrap: wrap; }
   .detail-meta { color: var(--text-secondary); font-size: 12.5px; margin-top: 2px; }
 
-  .legend { display: flex; gap: 14px; font-size: 12px; color: var(--text-secondary); margin: 4px 0 18px; flex-wrap: wrap; align-items: center; }
-  .legend-item { display: flex; align-items: center; gap: 6px; }
-  .legend-item .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
-  .legend-item .dot.ok { background: var(--border-strong); }
-  .legend-item .dot.missing { background: var(--c-missing); }
-  .legend-item .dot.review { background: var(--c-review); }
-  .legend-item .dot.alert { background: var(--c-alert); }
-  .legend-item .dot.web { background: var(--c-web); }
-
-  .detail-layout { display: flex; align-items: flex-start; gap: 0; }
-  .detail-main { flex: 1 1 auto; min-width: 0; }
-
-  .detail-divider {
-    width: 10px; flex-shrink: 0; cursor: col-resize; align-self: stretch;
-    display: flex; align-items: center; justify-content: center; position: relative;
+  .status-summary { display: flex; gap: 8px; margin: 4px 0 18px; flex-wrap: wrap; align-items: center; }
+  .status-chip {
+    display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 16px; font-size: 12px; font-weight: 600;
+    border: 1px solid var(--border-strong); background: var(--surface); color: var(--text-secondary); cursor: pointer;
   }
-  .detail-divider::after { content: ""; width: 3px; height: 40px; border-radius: 2px; background: var(--border-strong); }
-  .detail-divider:hover::after, .detail-divider.dragging::after { background: #8a9096; }
+  .status-chip .dot { width: 7px; height: 7px; border-radius: 50%; }
+  .status-chip.review { border-color: var(--c-review-border); background: var(--c-review-bg); color: var(--c-review); }
+  .status-chip.review .dot { background: var(--c-review); }
+  .status-chip.missing { border-color: var(--c-missing-border); background: var(--c-missing-bg); color: var(--c-missing); }
+  .status-chip.missing .dot { background: var(--c-missing); }
+  .status-chip.alert { border-color: var(--c-alert-border); background: var(--c-alert-bg); color: var(--c-alert); }
+  .status-chip.alert .dot { background: var(--c-alert); }
+  .status-chip.web { border-color: var(--c-web-border); background: var(--c-web-bg); color: var(--c-web); cursor: default; }
+  .status-chip.web .dot { background: var(--c-web); }
+  .status-chip:hover:not(.web) { filter: brightness(0.97); }
 
   .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-1); overflow: hidden; }
 
@@ -333,43 +344,59 @@
   .note-list .note-source { font-size: 11px; color: var(--text-meta); white-space: nowrap; }
 
   .action-bar { display: flex; gap: 8px; margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border); flex-wrap: wrap; align-items: center; }
-  .export-group { display: flex; align-items: center; gap: 0; margin-left: auto; }
-  .format-select { display: flex; border: 1px solid var(--border-strong); border-radius: var(--radius-sm) 0 0 var(--radius-sm); overflow: hidden; border-right: none; }
-  .format-opt { font-size: 12px; padding: 9px 12px; background: var(--surface); border: none; border-right: 1px solid var(--border-strong); cursor: pointer; color: var(--text-secondary); font-weight: 600; }
-  .format-opt:last-child { border-right: none; }
-  .format-opt.active { background: var(--surface-2); color: var(--text); }
-  .format-opt.disabled { color: var(--text-meta); cursor: not-allowed; background: var(--surface); }
-  .export-download { border-radius: 0 var(--radius-sm) var(--radius-sm) 0 !important; }
+  .action-bar .spacer { margin-left: auto; }
   .warning-banner {
     border: 1px solid var(--c-review-border); background: var(--c-review-bg); color: #7a5a10;
     padding: 11px 14px; border-radius: var(--radius-sm); font-size: 13px; margin: 18px 0; display: flex; gap: 8px; align-items: center;
   }
 
-  /* ---------- Inspector（右側 常設パネル） ---------- */
+  /* ---------- Inspector（右スライド式サイドパネル） ---------- */
   .inspector-panel {
-    width: 420px; flex-shrink: 0; align-self: stretch;
-    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-    box-shadow: var(--shadow-1); display: flex; flex-direction: column; min-height: 520px; max-height: calc(100vh - 140px);
-    position: sticky; top: 82px;
+    position: fixed; top: var(--header-h); right: 0; bottom: 0; z-index: 250;
+    width: min(34vw, 620px); min-width: 380px;
+    background: var(--surface); border-left: 1px solid var(--border);
+    box-shadow: -10px 0 28px rgba(15,16,18,0.16);
+    display: flex; flex-direction: column;
+    transform: translateX(100%); transition: transform .22s ease;
   }
-  .inspector-empty {
-    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
-    text-align: center; padding: 40px 28px; color: var(--text-meta); gap: 10px;
-  }
-  .inspector-empty svg { opacity: .55; }
-  .inspector-empty .t1 { font-size: 13px; font-weight: 700; color: var(--text-secondary); }
-  .inspector-empty .t2 { font-size: 12px; line-height: 1.6; }
+  .inspector-panel.open { transform: translateX(0); }
 
-  .inspector-body { display: none; flex-direction: column; flex: 1; min-height: 0; }
-  .inspector-body.active { display: flex; }
-  .inspector-head { padding: 16px 18px 12px; border-bottom: 1px solid var(--border); }
+  .inspector-head { padding: 16px 18px 14px; border-bottom: 1px solid var(--border); display: flex; gap: 10px; align-items: flex-start; }
+  .insp-back {
+    border: none; background: var(--surface-2); color: var(--text-secondary); border-radius: var(--radius-sm);
+    padding: 6px 10px; font-size: 12px; cursor: pointer; font-weight: 600; flex-shrink: 0; margin-top: 1px;
+  }
+  .insp-back:hover { background: var(--surface-3); }
+  .inspector-head-main { flex: 1; min-width: 0; }
   .inspector-eyebrow { font-size: 11px; color: var(--text-meta); text-transform: uppercase; letter-spacing: .04em; font-weight: 700; margin-bottom: 6px; }
   .inspector-title-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
   .inspector-title { font-size: 16px; font-weight: 700; }
   .inspector-reason { font-size: 12.5px; color: var(--text-secondary); line-height: 1.6; }
+  .insp-close {
+    border: none; background: none; color: var(--text-meta); cursor: pointer; font-size: 18px; line-height: 1;
+    padding: 2px 4px; flex-shrink: 0;
+  }
+  .insp-close:hover { color: var(--text); }
 
   .inspector-scroll { flex: 1; overflow-y: auto; padding: 16px 18px 8px; }
   .inspector-section-label { font-size: 11px; color: var(--text-meta); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; margin: 0 0 8px; }
+
+  /* 要確認一覧（overviewモード） */
+  .overview-group { margin-bottom: 18px; }
+  .overview-group-head { display: flex; align-items: center; gap: 7px; margin-bottom: 8px; font-size: 12px; font-weight: 700; }
+  .overview-group-head .dot { width: 7px; height: 7px; border-radius: 50%; }
+  .overview-group-head.review .dot { background: var(--c-review); } .overview-group-head.review { color: var(--c-review); }
+  .overview-group-head.missing .dot { background: var(--c-missing); } .overview-group-head.missing { color: var(--c-missing); }
+  .overview-group-head.alert .dot { background: var(--c-alert); } .overview-group-head.alert { color: var(--c-alert); }
+  .overview-group-head.web .dot { background: var(--c-web); } .overview-group-head.web { color: var(--c-web); }
+  .overview-row {
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    border: 1px solid var(--border); background: var(--surface); border-radius: var(--radius-sm);
+    padding: 10px 12px; margin-bottom: 6px; cursor: pointer; font-size: 13px;
+  }
+  .overview-row:hover { background: #f7f8f8; border-color: var(--border-strong); }
+  .overview-row .ov-label { font-weight: 600; }
+  .overview-row .ov-arrow { color: var(--text-meta); font-weight: 700; }
 
   .candidate {
     border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 10px 12px; margin-bottom: 8px;
@@ -420,13 +447,33 @@
   }
   #help-fab:hover { background: #2a2c2f; transform: translateY(-1px); }
 
-  /* ---------- 簡易モーダル（削除確認・確定確認・ログアウト確認 等の限定用途） ---------- */
+  /* ---------- 簡易モーダル（削除確認・確定確認・ログアウト確認・出力形式選択 等の限定用途） ---------- */
   .modal-overlay { position: fixed; inset: 0; background: rgba(10,10,11,0.45); display: none; align-items: center; justify-content: center; z-index: 800; }
   .modal-overlay.active { display: flex; }
-  .modal-box { width: 340px; background: var(--surface); border-radius: var(--radius); padding: 22px; box-shadow: var(--shadow-2); }
+  .modal-box { width: 360px; background: var(--surface); border-radius: var(--radius); padding: 22px; box-shadow: var(--shadow-2); }
   .modal-title { font-size: 14.5px; font-weight: 700; margin-bottom: 8px; }
-  .modal-body { font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 18px; }
-  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
+  .modal-body { font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 16px; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+
+  .export-options { display: flex; gap: 8px; }
+  .export-opt {
+    flex: 1; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--surface);
+    padding: 14px 8px; text-align: center; cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--text-secondary);
+  }
+  .export-opt .ic { width: 22px; height: 22px; margin: 0 auto 6px; }
+  .export-opt .ic svg { width: 100%; height: 100%; stroke: currentColor; }
+  .export-opt.selected { border-color: #17181a; border-width: 1.5px; background: var(--surface-2); color: var(--text); }
+  .export-opt.disabled { opacity: .45; cursor: not-allowed; }
+  .export-opt .tag-soon { display: block; font-size: 9.5px; font-weight: 500; color: var(--text-meta); margin-top: 2px; }
+
+  /* ---------- トースト ---------- */
+  #toast {
+    position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%) translateY(12px);
+    background: #17181a; color: #fff; padding: 11px 18px; border-radius: 999px; font-size: 13px; font-weight: 600;
+    box-shadow: var(--shadow-2); z-index: 900; display: flex; align-items: center; gap: 8px;
+    opacity: 0; pointer-events: none; transition: opacity .18s ease, transform .18s ease;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 </style>
 </head>
 <body>
@@ -438,7 +485,7 @@
   <button onclick="devgo('SCR-02')">アップロード</button>
   <button onclick="devgo('SCR-03')">詳細</button>
   <button onclick="devgo('SCR-05')">資料追加</button>
-  <button onclick="devgo('SCR-03'); openInspector('engCompany')">Inspector</button>
+  <button onclick="devgo('SCR-03'); openInspectorField('engCompany')">Inspector</button>
 </div>
 
 <!-- SCR-00 ログイン -->
@@ -466,7 +513,7 @@
 
 <!-- アプリシェル -->
 <div id="shell">
-  <aside class="sidebar">
+  <aside class="sidebar" id="sidebar">
     <div class="sidebar-top">
       <div class="sidebar-brand">
         <div class="brand-mark">
@@ -474,51 +521,36 @@
             <path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5"/><line x1="9" y1="12.5" x2="15" y2="12.5"/><line x1="9" y1="16" x2="13" y2="16"/>
           </svg>
         </div>
-        <div class="brand-name">引合書整理<br>エージェント</div>
+        <div class="brand-name label">引合書整理<br>エージェント</div>
+        <button class="sidebar-toggle" onclick="toggleSidebar()" title="サイドバーの開閉">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"/></svg>
+        </button>
       </div>
 
       <ul class="sidebar-nav">
         <li>
-          <button class="nav-item active" data-target="SCR-01" data-filter="all" onclick="navClick(this)">
+          <button class="nav-item active" data-target="SCR-01" title="進捗確認" onclick="navClick(this)">
             <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="20" y2="12"/><line x1="8" y1="18" x2="20" y2="18"/><line x1="4" y1="6" x2="4.01" y2="6"/><line x1="4" y1="12" x2="4.01" y2="12"/><line x1="4" y1="18" x2="4.01" y2="18"/></svg></span>
-            引合一覧
+            <span class="label">進捗確認</span>
+            <span class="sidebar-count label" id="sidebarConfirmingCount">2</span>
           </button>
         </li>
         <li>
-          <button class="nav-item" data-target="SCR-02" onclick="navClick(this)">
+          <button class="nav-item" data-target="SCR-02" title="新規アップロード" onclick="navClick(this)">
             <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M6 10l6-6 6 6"/><path d="M4 20h16"/></svg></span>
-            新規アップロード
+            <span class="label">新規アップロード</span>
           </button>
         </li>
         <li>
-          <button class="nav-item" data-target="SCR-01" data-filter="confirming" onclick="navClick(this)">
-            <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg></span>
-            確認中
-            <span class="sidebar-count">2</span>
-          </button>
-        </li>
-        <li>
-          <button class="nav-item" data-target="SCR-01" data-filter="final" onclick="navClick(this)">
-            <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M8.5 12l2.5 2.5 5-5"/></svg></span>
-            確定済み
-            <span class="sidebar-count">1</span>
-          </button>
-        </li>
-
-        <div class="sidebar-divider"></div>
-
-        <li>
-          <button class="nav-item disabled" title="今後対応予定の機能です">
+          <button class="nav-item placeholder" title="見積書作成 / 発行" onclick="showToast('準備中の機能です')">
             <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5"/><line x1="9" y1="12.5" x2="15" y2="12.5"/><line x1="9" y1="16" x2="13" y2="16"/></svg></span>
-            見積書発行
-            <span class="soon">今後対応</span>
+            <span class="label">見積書作成 / 発行</span>
           </button>
         </li>
         <li>
-          <button class="nav-item disabled" title="今後対応予定の機能です">
+          <button class="nav-item placeholder" title="設定" onclick="showToast('準備中の機能です')">
             <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
-            設定
-            <span class="soon">今後対応</span>
+            <span class="label">設定</span>
           </button>
         </li>
       </ul>
@@ -526,30 +558,30 @@
     <div class="sidebar-bottom">
       <div class="user-row">
         <div class="user-avatar">田</div>
-        <div>
+        <div class="label">
           <div class="user-name">田中 太郎</div>
           <div class="user-email">sales@toseki-steel.co.jp</div>
         </div>
       </div>
-      <button class="logout-btn" onclick="requestLogout()">
+      <button class="logout-btn" onclick="requestLogout()" title="ログアウト">
         <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></span>
-        ログアウト
+        <span class="label">ログアウト</span>
       </button>
     </div>
   </aside>
 
   <div class="shell-main">
     <header class="topbar">
-      <div class="breadcrumb" id="breadcrumb">引合一覧</div>
+      <div class="breadcrumb" id="breadcrumb">進捗確認</div>
       <div class="topbar-actions" id="topbar-actions"></div>
     </header>
 
     <div class="content">
 
-      <!-- SCR-01 引合一覧 -->
+      <!-- SCR-01 引合一覧（進捗確認） -->
       <section id="SCR-01" class="screen active">
         <div class="toolbar">
-          <h1>引合一覧</h1>
+          <h1>進捗確認</h1>
           <button class="btn" data-goto="SCR-02">＋ 新規アップロード</button>
         </div>
 
@@ -562,29 +594,25 @@
         <div class="list-card">
         <table class="list">
           <thead>
-            <tr><th>依頼元企業</th><th>案件名</th><th>依頼日時</th><th>状態</th><th>要確認</th><th>不明</th><th>アラート</th><th>最終更新</th></tr>
+            <tr><th>依頼元企業</th><th>案件名</th><th>依頼日時</th><th>状態</th><th>要確認</th><th>最終更新</th></tr>
           </thead>
           <tbody>
             <tr class="row-item" data-status="confirming" onclick="openDetail(event)">
               <td>東西石油開発</td><td>北海油田 鋼管更新案件</td><td>2026-09-01 10:32</td>
               <td><span class="badge confirming"><span class="dot"></span>確認中</span></td>
-              <td><button class="count-link review" onclick="event.stopPropagation(); openDetailFilter('review')">1件</button></td>
-              <td><button class="count-link missing" onclick="event.stopPropagation(); openDetailFilter('missing')">2件</button></td>
-              <td><button class="count-link alert" onclick="event.stopPropagation(); openDetailFilter('alert')">2件</button></td>
+              <td><button class="count-link review" onclick="event.stopPropagation(); openDetailOverview()">7件</button></td>
               <td class="row-arrow">2026-09-10 14:02</td>
             </tr>
             <tr class="row-item" data-status="final" onclick="openDetail(event)">
               <td>北洋エナジー</td><td>資材所要一覧に基づく引合</td><td>2026-08-28 16:10</td>
               <td><span class="badge final"><span class="dot"></span>確定済み</span></td>
-              <td class="count-zero">0件</td><td class="count-zero">0件</td><td class="count-zero">0件</td>
+              <td class="count-zero">0件</td>
               <td class="row-arrow">2026-09-08 09:41</td>
             </tr>
             <tr class="row-item" data-status="confirming" onclick="openDetail(event)">
               <td>GulfTex Energy</td><td>Email Thread引合</td><td>2026-09-11 09:05</td>
               <td><span class="badge confirming"><span class="dot"></span>確認中</span></td>
-              <td><button class="count-link review" onclick="event.stopPropagation(); openDetailFilter('review')">2件</button></td>
-              <td><button class="count-link missing" onclick="event.stopPropagation(); openDetailFilter('missing')">3件</button></td>
-              <td><button class="count-link alert" onclick="event.stopPropagation(); openDetailFilter('alert')">1件</button></td>
+              <td><button class="count-link review" onclick="event.stopPropagation(); openDetailOverview()">6件</button></td>
               <td class="row-arrow">2026-09-12 18:20</td>
             </tr>
           </tbody>
@@ -640,15 +668,13 @@
         </ul>
 
         <div class="upload-action-row">
-          <button class="btn" data-goto="SCR-03">アップロード開始</button>
+          <button class="btn" id="uploadStartBtn" onclick="startUploadDemo()">アップロード開始</button>
           <div class="progress-wrap">
-            <div class="progress"><div class="progress-bar"></div></div>
-            <div class="loading-note"><span class="spin"></span>AIが解析中…</div>
-            <div class="step-track">
-              <span class="step done">✓ アップロード</span><span class="sep">›</span>
-              <span class="step current">● 解析中</span><span class="sep">›</span>
-              <span class="step">完了</span>
+            <div class="progress-row">
+              <div class="progress"><div class="progress-bar" id="uploadProgressBar"></div></div>
+              <div class="progress-pct" id="uploadProgressPct">0%</div>
             </div>
+            <div class="loading-note"><span class="spin" id="uploadSpinner" style="visibility:hidden;"></span><span id="uploadLoadingNote">アップロード待機中</span></div>
           </div>
         </div>
         </div>
@@ -664,128 +690,73 @@
           <span class="badge confirming"><span class="dot"></span>確認中</span>
         </div>
 
-        <div class="legend">
-          <span class="legend-item"><span class="dot ok"></span>確認不要</span>
-          <span class="legend-item"><span class="dot missing"></span>不明</span>
-          <span class="legend-item"><span class="dot review"></span>要確認</span>
-          <span class="legend-item"><span class="dot alert"></span>アラート</span>
-          <span class="legend-item"><span class="dot web"></span>Web補完</span>
+        <div class="status-summary">
+          <button class="status-chip review" onclick="openInspectorOverview()"><span class="dot"></span>要確認 <span id="sumReview">3</span></button>
+          <button class="status-chip missing" onclick="openInspectorOverview()"><span class="dot"></span>不明 <span id="sumMissing">2</span></button>
+          <button class="status-chip alert" onclick="openInspectorOverview()"><span class="dot"></span>アラート <span id="sumAlert">2</span></button>
+          <span class="status-chip web"><span class="dot"></span>Web補完 <span id="sumWeb">1</span></span>
         </div>
 
-        <div class="detail-layout">
-          <div class="detail-main">
+        <div class="card">
+          <h2 style="margin:0; padding:14px 14px 0;">案件サマリー</h2>
+          <table class="summary" style="margin-top:8px;">
+            <tr class="clickable" id="row-requester" onclick="openInspectorField('requester')"><td class="label">依頼元企業</td><td><span class="val-cell" id="cell-requester">東西石油開発株式会社</span></td></tr>
+            <tr class="clickable" id="row-projectName" onclick="openInspectorField('projectName')"><td class="label">案件名／プロジェクト名</td><td><span class="val-cell" id="cell-projectName">北海油田 鋼管更新案件</span></td></tr>
+            <tr class="clickable" id="row-inquiryDate" onclick="openInspectorField('inquiryDate')"><td class="label">引合日</td><td><span class="val-cell" id="cell-inquiryDate">2026-09-01</span></td></tr>
+            <tr class="clickable" id="row-dueDate" onclick="openInspectorField('dueDate')"><td class="label">回答期限／見積期限</td><td><span class="val-cell" id="cell-dueDate"><span class="badge missing">不明</span></span></td></tr>
+            <tr class="clickable" id="row-country" onclick="openInspectorField('country')"><td class="label">発注国／納入先国</td><td><span class="val-cell" id="cell-country">ノルウェー</span></td></tr>
+            <tr class="clickable" id="row-purpose" onclick="openInspectorField('purpose')"><td class="label">用途</td><td><span class="val-cell" id="cell-purpose">海底パイプライン更新</span></td></tr>
+            <tr class="clickable" id="row-background" onclick="openInspectorField('background')"><td class="label">案件背景／概要</td><td><span class="val-cell" id="cell-background">既設油田の設備更新に伴う鋼管一括更新</span></td></tr>
+            <tr class="clickable" id="row-orderer" onclick="openInspectorField('orderer')"><td class="label">発注者／End User</td><td><span class="val-cell" id="cell-orderer">東西石油開発株式会社</span></td></tr>
+            <tr class="clickable" id="row-engCompany" onclick="openInspectorField('engCompany')"><td class="label">エンジニアリング会社</td><td><span class="val-cell" id="cell-engCompany"><span class="badge review">要確認</span><span style="color:var(--text-meta); font-size:12px;">候補2件</span></span></td></tr>
+            <tr class="clickable" id="row-epc" onclick="openInspectorField('epc')"><td class="label">EPC</td><td><span class="val-cell" id="cell-epc"><span class="badge review">要確認</span><span style="color:var(--text-meta); font-size:12px;">候補2件</span></span></td></tr>
+            <tr class="clickable" id="row-desiredDelivery" onclick="openInspectorField('desiredDelivery')"><td class="label">希望納期</td><td><span class="val-cell" id="cell-desiredDelivery"><span class="badge alert">アラート</span><span style="color:var(--text-meta); font-size:12px;">資料間で矛盾</span></span></td></tr>
+            <tr class="clickable" id="row-quantityScale" onclick="openInspectorField('quantityScale')"><td class="label">数量感／案件規模</td><td><span class="val-cell" id="cell-quantityScale">約1,200本</span></td></tr>
+            <tr class="clickable" id="row-similarCase" onclick="openInspectorField('similarCase')"><td class="label">類似案件</td><td><span class="val-cell" id="cell-similarCase"><span class="badge missing">不明</span></span></td></tr>
+            <tr class="clickable" id="row-marketCondition" onclick="openInspectorField('marketCondition')"><td class="label">市況</td><td><span class="val-cell" id="cell-marketCondition"><span class="val-web-note">北海圏の油田開発は増加傾向</span><span class="badge web">Web補完</span></span></td></tr>
+          </table>
+        </div>
 
-            <div class="card">
-              <h2 style="margin:0; padding:14px 14px 0;">案件サマリー</h2>
-              <table class="summary" style="margin-top:8px;">
-                <tr class="clickable" id="row-requester" onclick="openInspector('requester')"><td class="label">依頼元企業</td><td><span class="val-cell" id="cell-requester">東西石油開発株式会社</span></td></tr>
-                <tr class="clickable" id="row-projectName" onclick="openInspector('projectName')"><td class="label">案件名／プロジェクト名</td><td><span class="val-cell" id="cell-projectName">北海油田 鋼管更新案件</span></td></tr>
-                <tr class="clickable" id="row-inquiryDate" onclick="openInspector('inquiryDate')"><td class="label">引合日</td><td><span class="val-cell" id="cell-inquiryDate">2026-09-01</span></td></tr>
-                <tr class="clickable" id="row-dueDate" onclick="openInspector('dueDate')"><td class="label">回答期限／見積期限</td><td><span class="val-cell" id="cell-dueDate"><span class="badge missing">不明</span></span></td></tr>
-                <tr class="clickable" id="row-country" onclick="openInspector('country')"><td class="label">発注国／納入先国</td><td><span class="val-cell" id="cell-country">ノルウェー</span></td></tr>
-                <tr class="clickable" id="row-purpose" onclick="openInspector('purpose')"><td class="label">用途</td><td><span class="val-cell" id="cell-purpose">海底パイプライン更新</span></td></tr>
-                <tr class="clickable" id="row-background" onclick="openInspector('background')"><td class="label">案件背景／概要</td><td><span class="val-cell" id="cell-background">既設油田の設備更新に伴う鋼管一括更新</span></td></tr>
-                <tr class="clickable" id="row-orderer" onclick="openInspector('orderer')"><td class="label">発注者／End User</td><td><span class="val-cell" id="cell-orderer">東西石油開発株式会社</span></td></tr>
-                <tr class="clickable" id="row-engCompany" onclick="openInspector('engCompany')"><td class="label">エンジ会社</td><td><span class="val-cell" id="cell-engCompany"><span class="badge review">要確認</span><span style="color:var(--text-meta); font-size:12px;">候補2件</span></span></td></tr>
-                <tr class="clickable" id="row-epc" onclick="openInspector('epc')"><td class="label">EPC</td><td><span class="val-cell" id="cell-epc"><span class="badge review">要確認</span><span style="color:var(--text-meta); font-size:12px;">候補2件</span></span></td></tr>
-                <tr class="clickable" id="row-desiredDelivery" onclick="openInspector('desiredDelivery')"><td class="label">希望納期</td><td><span class="val-cell" id="cell-desiredDelivery"><span class="badge alert">アラート</span><span style="color:var(--text-meta); font-size:12px;">資料間で矛盾</span></span></td></tr>
-                <tr class="clickable" id="row-quantityScale" onclick="openInspector('quantityScale')"><td class="label">数量感／案件規模</td><td><span class="val-cell" id="cell-quantityScale">約1,200本</span></td></tr>
-                <tr class="clickable" id="row-similarCase" onclick="openInspector('similarCase')"><td class="label">類似案件</td><td><span class="val-cell" id="cell-similarCase"><span class="badge missing">不明</span></span></td></tr>
-                <tr class="clickable" id="row-marketCondition" onclick="openInspector('marketCondition')"><td class="label">市況</td><td><span class="val-cell" id="cell-marketCondition"><span class="val-web-note">北海圏の油田開発は増加傾向</span><span class="badge web">Web補完</span></span></td></tr>
-              </table>
-            </div>
+        <h2>品目一覧</h2>
+        <div class="card">
+        <table class="itemlist">
+          <thead>
+            <tr><th>#</th><th>製管方法</th><th>用途</th><th>グレード</th><th>ネジ種</th><th>外径</th><th>肉厚</th><th>長さ</th><th>数量</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>1</td><td>シームレス</td><td>ケーシング</td>
+              <td class="clickable" id="row-item1Grade" onclick="openInspectorField('item1Grade')"><span id="cell-item1Grade"><span class="badge review">要確認</span></span></td>
+              <td>API規格</td><td>244.5mm</td><td>13.8mm</td><td>12m</td>
+              <td class="clickable" id="row-item1Qty" onclick="openInspectorField('item1Qty')"><span id="cell-item1Qty"><span class="badge alert">アラート</span></span></td>
+            </tr>
+            <tr>
+              <td>2</td><td>溶接</td><td>チュービング</td><td>L80</td><td>Premium</td><td>73mm</td><td>7.0mm</td><td>9.5m</td><td>320本</td>
+            </tr>
+          </tbody>
+        </table>
+        </div>
 
-            <h2>品目一覧</h2>
-            <div class="card">
-            <table class="itemlist">
-              <thead>
-                <tr><th>#</th><th>製管方法</th><th>用途</th><th>グレード</th><th>ネジ種</th><th>外径</th><th>肉厚</th><th>長さ</th><th>数量</th></tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>1</td><td>シームレス</td><td>ケーシング</td>
-                  <td class="clickable" id="row-item1Grade" onclick="openInspector('item1Grade')"><span id="cell-item1Grade"><span class="badge review">要確認</span></span></td>
-                  <td>API規格</td><td>244.5mm</td><td>13.8mm</td><td>12m</td>
-                  <td class="clickable" id="row-item1Qty" onclick="openInspector('item1Qty')"><span id="cell-item1Qty"><span class="badge alert">アラート</span></span></td>
-                </tr>
-                <tr>
-                  <td>2</td><td>溶接</td><td>チュービング</td><td>L80</td><td>Premium</td><td>73mm</td><td>7.0mm</td><td>9.5m</td><td>320本</td>
-                </tr>
-              </tbody>
-            </table>
-            </div>
+        <h2>その他特記事項</h2>
+        <div class="note-tabs">
+          <button class="active" onclick="switchNoteTab(this,'case')">案件全体</button>
+          <button onclick="switchNoteTab(this,'item')">品目固有</button>
+        </div>
+        <ul class="note-list" id="note-case">
+          <li><span>Mill Certificate提出必須</span><span class="note-source">03_見積依頼書.pdf p.2</span></li>
+          <li><span>第三者検査あり</span><span class="note-source">04_引合メール.eml 本文</span></li>
+        </ul>
+        <ul class="note-list" id="note-item" style="display:none;">
+          <li><span>品目1: 特殊コーティング指定</span><span class="note-source">01_オーダーリスト.xlsx シート2 C15</span></li>
+        </ul>
 
-            <h2>その他特記事項</h2>
-            <div class="note-tabs">
-              <button class="active" onclick="switchNoteTab(this,'case')">案件全体</button>
-              <button onclick="switchNoteTab(this,'item')">品目固有</button>
-            </div>
-            <ul class="note-list" id="note-case">
-              <li><span>Mill Certificate提出必須</span><span class="note-source">03_見積依頼書.pdf p.2</span></li>
-              <li><span>第三者検査あり</span><span class="note-source">04_引合メール.eml 本文</span></li>
-            </ul>
-            <ul class="note-list" id="note-item" style="display:none;">
-              <li><span>品目1: 特殊コーティング指定</span><span class="note-source">01_オーダーリスト.xlsx シート2 C15</span></li>
-            </ul>
+        <div class="warning-banner">⚠️ 確定済みの内容を変更しました。再度出力してください。</div>
 
-            <div class="warning-banner">⚠️ 確定済みの内容を変更しました。再度出力してください。</div>
-
-            <div class="action-bar">
-              <button class="btn secondary" data-goto="SCR-05">📎 資料を追加</button>
-              <div class="export-group">
-                <div class="format-select">
-                  <button class="format-opt active" title="Excel形式で出力">Excel</button>
-                  <button class="format-opt disabled" title="今後対応予定">Word</button>
-                  <button class="format-opt disabled" title="今後対応予定">PDF</button>
-                </div>
-                <button class="btn secondary export-download">⬇ ダウンロード（_draft）</button>
-              </div>
-              <button class="btn" onclick="requestConfirmCase()">✔ 確定する</button>
-            </div>
-          </div>
-
-          <div class="detail-divider" id="detailDivider"></div>
-
-          <!-- SCR-04: 根拠確認 Inspector（常設パネル / Split View） -->
-          <aside class="inspector-panel" id="inspector">
-            <div class="inspector-empty" id="inspectorEmpty">
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#8b9198" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 20l-8-4.5v-7L12 4l8 4.5v7z"/><path d="M12 12l8-4.5"/><path d="M12 12v8"/><path d="M12 12L4 7.5"/>
-              </svg>
-              <div class="t1">項目を選択してください</div>
-              <div class="t2">左の表で要確認・不明・アラートの項目を<br>クリックすると、ここに根拠が表示されます</div>
-            </div>
-
-            <div class="inspector-body" id="inspectorBody">
-              <div class="inspector-head">
-                <div class="inspector-eyebrow">根拠確認</div>
-                <div class="inspector-title-row">
-                  <span class="inspector-title" id="inspTitle">エンジ会社</span>
-                  <span class="badge" id="inspStatusBadge">要確認</span>
-                </div>
-                <div class="inspector-reason" id="inspReason">複数の資料で異なる値が記載されています。</div>
-              </div>
-
-              <div class="inspector-scroll">
-                <div class="confirmed-flash" id="confirmedFlash">✓ 確定しました</div>
-
-                <div class="inspector-section-label">候補値（クリックで比較）</div>
-                <div id="candidateList"></div>
-
-                <div class="inspector-section-label" style="margin-top:14px;">出典プレビュー</div>
-                <div class="preview-box" id="previewBox"></div>
-              </div>
-
-              <div class="inspector-confirm">
-                <label>確定する値</label>
-                <input type="text" id="confirmInput" value="">
-                <div class="inspector-footer">
-                  <button class="btn secondary" onclick="closeInspector()">閉じる</button>
-                  <button class="btn" onclick="confirmValue()">この値を確定する</button>
-                </div>
-              </div>
-            </div>
-          </aside>
+        <div class="action-bar">
+          <button class="btn secondary" data-goto="SCR-05">📎 資料を追加</button>
+          <div class="spacer"></div>
+          <button class="btn secondary" id="exportTriggerBtn" onclick="openExportModal()" hidden>⬇ 出力する</button>
+          <button class="btn" id="confirmCaseBtn" onclick="requestConfirmCase()">✔ 確定する</button>
         </div>
       </section>
 
@@ -823,6 +794,36 @@
 
     </div>
   </div>
+
+  <!-- SCR-04: 根拠確認Inspector（右スライド式サイドパネル） -->
+  <aside class="inspector-panel" id="inspector">
+    <div class="inspector-head">
+      <button class="insp-back" id="inspBack" onclick="backToOverview()" hidden>‹ 戻る</button>
+      <div class="inspector-head-main">
+        <div class="inspector-eyebrow" id="inspEyebrow">要確認一覧</div>
+        <div class="inspector-title-row">
+          <span class="inspector-title" id="inspTitle">東西石油開発 - 北海油田 鋼管更新案件</span>
+          <span class="badge" id="inspStatusBadge" hidden>要確認</span>
+        </div>
+        <div class="inspector-reason" id="inspReason">確認が必要な項目の一覧です。クリックすると根拠を確認できます。</div>
+      </div>
+      <button class="insp-close" onclick="closeInspectorPanel()" aria-label="閉じる">✕</button>
+    </div>
+
+    <div class="inspector-scroll" id="inspScroll">
+      <div class="confirmed-flash" id="confirmedFlash">✓ 確定しました</div>
+      <div id="inspectorContent"></div>
+    </div>
+
+    <div class="inspector-confirm" id="inspectorConfirmBar" style="display:none;">
+      <label>確定する値</label>
+      <input type="text" id="confirmInput" value="">
+      <div class="inspector-footer">
+        <button class="btn secondary" onclick="closeInspectorPanel()">閉じる</button>
+        <button class="btn" onclick="confirmValue()">この値を確定する</button>
+      </div>
+    </div>
+  </aside>
 </div>
 
 <!-- 限定用途モーダル: ログアウト確認 -->
@@ -849,6 +850,35 @@
   </div>
 </div>
 
+<!-- 限定用途モーダル: 出力形式選択（確定後の出力導線） -->
+<div class="modal-overlay" id="exportModal">
+  <div class="modal-box">
+    <div class="modal-title">出力形式を選択</div>
+    <div class="modal-body">確定済みの内容を、選択した形式でダウンロードします。</div>
+    <div class="export-options">
+      <div class="export-opt selected" id="exportOptExcel" onclick="selectExportFormat('excel')">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="9" y1="4" x2="9" y2="20"/></svg></div>
+        Excel
+      </div>
+      <div class="export-opt disabled" title="今後対応予定">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5"/></svg></div>
+        Word<span class="tag-soon">今後対応</span>
+      </div>
+      <div class="export-opt disabled" title="今後対応予定">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5"/></svg></div>
+        PDF<span class="tag-soon">今後対応</span>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn secondary" onclick="closeModal('exportModal')">キャンセル</button>
+      <button class="btn" id="exportStartBtn" onclick="startExport()">出力開始</button>
+    </div>
+  </div>
+</div>
+
+<!-- トースト（出力完了・準備中機能などの短い通知） -->
+<div id="toast"></div>
+
 <!-- 補助導線: 全画面共通のヘルプアイコン -->
 <button id="help-fab" title="ヘルプ" aria-label="ヘルプ">?</button>
 
@@ -871,6 +901,21 @@
     showScreen(target);
   }
 
+  /* ---------- サイドバー開閉 ---------- */
+  function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('collapsed');
+  }
+
+  /* ---------- トースト ---------- */
+  let toastTimer = null;
+  function showToast(message) {
+    const t = document.getElementById('toast');
+    t.textContent = message;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+  }
+
   /* ---------- モーダル（限定用途） ---------- */
   function openModal(id) { document.getElementById(id).classList.add('active'); }
   function closeModal(id) { document.getElementById(id).classList.remove('active'); }
@@ -880,14 +925,39 @@
     document.querySelectorAll('#SCR-03 .detail-header .badge').forEach(b => {
       b.className = 'badge final'; b.innerHTML = '<span class="dot"></span>確定済み';
     });
+    document.getElementById('exportTriggerBtn').hidden = false;
+    openExportModal();
+  }
+
+  /* ---------- 出力（確定後の出力フロー） ---------- */
+  let exportFormat = 'excel';
+  function openExportModal() {
+    selectExportFormat('excel');
+    openModal('exportModal');
+  }
+  function selectExportFormat(fmt) {
+    exportFormat = fmt;
+    document.querySelectorAll('.export-opt').forEach(el => el.classList.remove('selected'));
+    document.getElementById('exportOptExcel').classList.add('selected');
+  }
+  function startExport() {
+    const btn = document.getElementById('exportStartBtn');
+    btn.disabled = true;
+    btn.textContent = '出力中…';
+    setTimeout(() => {
+      btn.disabled = false;
+      btn.textContent = '出力開始';
+      closeModal('exportModal');
+      showToast('✓ 出力しました（' + exportFormat.toUpperCase() + '）');
+    }, 900);
   }
 
   /* ---------- 画面遷移 ---------- */
   const breadcrumbs = {
-    'SCR-01': '引合一覧',
-    'SCR-02': '引合一覧 › 新規アップロード',
-    'SCR-03': '引合一覧 › 東西石油開発 - 北海油田 鋼管更新案件',
-    'SCR-05': '引合一覧 › 東西石油開発 - 北海油田 鋼管更新案件 › 資料を追加'
+    'SCR-01': '進捗確認',
+    'SCR-02': '進捗確認 › 新規アップロード',
+    'SCR-03': '進捗確認 › 東西石油開発 - 北海油田 鋼管更新案件',
+    'SCR-05': '進捗確認 › 東西石油開発 - 北海油田 鋼管更新案件 › 資料を追加'
   };
 
   function showScreen(id) {
@@ -895,20 +965,16 @@
     document.getElementById(id).classList.add('active');
     document.getElementById('breadcrumb').textContent = breadcrumbs[id] || id;
     document.querySelectorAll('.sidebar-nav .nav-item').forEach(b => {
-      b.classList.toggle('active', b.dataset.target === id && !b.dataset.filter);
+      b.classList.toggle('active', b.dataset.target === id);
     });
+    if (id !== 'SCR-03') closeInspectorPanel();
   }
   document.querySelectorAll('[data-goto]').forEach(b => b.addEventListener('click', () => showScreen(b.dataset.goto)));
 
   function navClick(btn) {
-    if (btn.classList.contains('disabled')) return;
+    if (!btn.dataset.target) return;
     showScreen(btn.dataset.target);
-    if (btn.dataset.target === 'SCR-01') {
-      document.querySelectorAll('.sidebar-nav .nav-item[data-target="SCR-01"]').forEach(b => b.classList.toggle('active', b === btn));
-      applyFilter(btn.dataset.filter || 'all');
-    } else {
-      document.querySelectorAll('.sidebar-nav .nav-item').forEach(b => b.classList.toggle('active', b === btn));
-    }
+    document.querySelectorAll('.sidebar-nav .nav-item').forEach(b => b.classList.toggle('active', b === btn));
   }
 
   function filterList(btn) {
@@ -917,14 +983,13 @@
     applyFilter(btn.dataset.filter);
   }
   function applyFilter(filter) {
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === filter));
     document.querySelectorAll('.row-item').forEach(row => {
       row.style.display = (filter === 'all' || row.dataset.status === filter) ? '' : 'none';
     });
   }
 
   function openDetail(e) { showScreen('SCR-03'); }
-  function openDetailFilter(kind) { showScreen('SCR-03'); /* 実装では kind(review/missing/alert) の項目へスクロール・絞り込み */ }
+  function openDetailOverview() { showScreen('SCR-03'); openInspectorOverview(); }
 
   function switchNoteTab(btn, kind) {
     document.querySelectorAll('.note-tabs button').forEach(b => b.classList.remove('active'));
@@ -939,7 +1004,38 @@
     ['dragleave','drop'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.remove('dragover'); }));
   });
 
-  /* ---------- Inspector（右側 Split View / SCR-04相当） ---------- */
+  /* ---------- SCR-02 アップロード進捗デモ ---------- */
+  function startUploadDemo() {
+    const btn = document.getElementById('uploadStartBtn');
+    const bar = document.getElementById('uploadProgressBar');
+    const pct = document.getElementById('uploadProgressPct');
+    const note = document.getElementById('uploadLoadingNote');
+    const spinner = document.getElementById('uploadSpinner');
+    const stages = [
+      { p: 15, label: 'アップロード中…' },
+      { p: 45, label: 'AI解析中…' },
+      { p: 68, label: '構造化中…' },
+      { p: 88, label: '要確認項目整理中…' },
+      { p: 100, label: '完了' }
+    ];
+    btn.disabled = true;
+    spinner.style.visibility = 'visible';
+    let i = 0;
+    const timer = setInterval(() => {
+      const s = stages[i];
+      bar.style.width = s.p + '%';
+      pct.textContent = s.p + '%';
+      note.textContent = s.label;
+      i++;
+      if (i >= stages.length) {
+        clearInterval(timer);
+        spinner.style.visibility = 'hidden';
+        setTimeout(() => { btn.disabled = false; showScreen('SCR-03'); }, 500);
+      }
+    }, 650);
+  }
+
+  /* ---------- Inspector（右スライド式サイドパネル / SCR-04相当） ---------- */
   const statusLabel = { ok: '確認不要', missing: '不明', review: '要確認', alert: 'アラート', web: 'Web補完' };
   const srcIcon = {
     pdf: '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5"/></svg>',
@@ -972,7 +1068,7 @@
     orderer: { label: '発注者／End User', status: 'ok', reason: '', candidates: [
       { value: '東西石油開発株式会社', source: '03_日本海ガス開発_見積依頼書.pdf p.1', type: 'pdf', page: '1 / 2', text: '発注者: <mark>東西石油開発株式会社</mark>' }
     ]},
-    engCompany: { label: 'エンジ会社', status: 'review', reason: '複数の資料で異なる値が記載されています（複数候補）。候補から選択するか、修正して確定してください。', candidates: [
+    engCompany: { label: 'エンジニアリング会社', status: 'review', reason: '複数の資料で異なる値が記載されています（複数候補）。候補から選択するか、修正して確定してください。', candidates: [
       { value: '北海エンジニアリング株式会社', source: '03_日本海ガス開発_見積依頼書.pdf p.1', type: 'pdf', page: '1 / 2', text: 'エンジニアリング会社: <mark>北海エンジニアリング（株）</mark>' },
       { value: 'Hokkai Engineering Co., Ltd.', source: '04_南邦石油_引合メール.eml 本文3段落目', type: 'eml', subject: '北海油田鋼管更新案件のご相談', text: '施工にあたり <mark>Hokkai Engineering Co., Ltd.</mark> 殿がエンジニアリングを担当予定です。' }
     ]},
@@ -1001,37 +1097,103 @@
     ]}
   };
 
+  let inspectorMode = 'closed'; // 'overview' | 'detail'
   let currentInspectorKey = null;
+  let cameFromOverview = false;
   let selectedCandidateIndex = 0;
 
-  function openInspector(key) {
-    currentInspectorKey = key;
-    selectedCandidateIndex = 0;
+  function updateStatusSummary() {
+    let review = 0, missing = 0, alert = 0, web = 0;
+    Object.values(inspectorData).forEach(d => {
+      if (d.status === 'review') review++;
+      else if (d.status === 'missing') missing++;
+      else if (d.status === 'alert') alert++;
+      else if (d.status === 'web') web++;
+    });
+    document.getElementById('sumReview').textContent = review;
+    document.getElementById('sumMissing').textContent = missing;
+    document.getElementById('sumAlert').textContent = alert;
+    document.getElementById('sumWeb').textContent = web;
+  }
+
+  function selectRowHighlight(key) {
     document.querySelectorAll('table.summary tr, table.itemlist td.clickable').forEach(el => el.classList.remove('selected'));
     const row = document.getElementById('row-' + key);
     if (row) row.classList.add('selected');
-    renderInspector();
-    document.getElementById('inspectorEmpty').style.display = 'none';
-    document.getElementById('inspectorBody').classList.add('active');
-    document.getElementById('confirmedFlash').classList.remove('show');
-  }
-  function closeInspector() {
-    currentInspectorKey = null;
-    document.querySelectorAll('table.summary tr, table.itemlist td.clickable').forEach(el => el.classList.remove('selected'));
-    document.getElementById('inspectorBody').classList.remove('active');
-    document.getElementById('inspectorEmpty').style.display = 'flex';
   }
 
-  function renderInspector() {
+  function openInspectorOverview() {
+    inspectorMode = 'overview';
+    document.getElementById('inspector').classList.add('open');
+    document.getElementById('inspBack').hidden = true;
+    document.getElementById('inspEyebrow').textContent = '要確認一覧';
+    document.getElementById('inspTitle').textContent = '確認が必要な項目';
+    document.getElementById('inspStatusBadge').hidden = true;
+    document.getElementById('inspReason').textContent = '不明・要確認・アラートの内訳です。項目をクリックすると根拠を確認できます。';
+    document.getElementById('inspectorConfirmBar').style.display = 'none';
+    document.querySelectorAll('table.summary tr, table.itemlist td.clickable').forEach(el => el.classList.remove('selected'));
+    renderOverviewContent();
+  }
+
+  function renderOverviewContent() {
+    const groups = [
+      { key: 'review', label: '要確認' },
+      { key: 'alert', label: 'アラート' },
+      { key: 'missing', label: '不明' },
+      { key: 'web', label: 'Web補完' }
+    ];
+    let html = '';
+    groups.forEach(g => {
+      const items = Object.entries(inspectorData).filter(([k, d]) => d.status === g.key);
+      if (items.length === 0) return;
+      html += '<div class="overview-group">';
+      html += '<div class="overview-group-head ' + g.key + '"><span class="dot"></span>' + g.label + '（' + items.length + '）</div>';
+      items.forEach(([k, d]) => {
+        html += '<div class="overview-row" onclick="openInspectorField(\'' + k + '\', true)"><span class="ov-label">' + d.label + '</span><span class="ov-arrow">›</span></div>';
+      });
+      html += '</div>';
+    });
+    if (!html) html = '<div class="no-candidate">確認が必要な項目はありません。</div>';
+    document.getElementById('inspectorContent').innerHTML = html;
+  }
+
+  function openInspectorField(key, fromOverview) {
+    inspectorMode = 'detail';
+    currentInspectorKey = key;
+    cameFromOverview = !!fromOverview;
+    selectedCandidateIndex = 0;
+    document.getElementById('inspector').classList.add('open');
+    document.getElementById('inspBack').hidden = !cameFromOverview;
+    document.getElementById('confirmedFlash').classList.remove('show');
+    document.getElementById('inspectorConfirmBar').style.display = 'block';
+    selectRowHighlight(key);
+    renderDetailContent();
+  }
+
+  function backToOverview() { openInspectorOverview(); }
+
+  function closeInspectorPanel() {
+    inspectorMode = 'closed';
+    currentInspectorKey = null;
+    document.getElementById('inspector').classList.remove('open');
+    document.querySelectorAll('table.summary tr, table.itemlist td.clickable').forEach(el => el.classList.remove('selected'));
+  }
+
+  function renderDetailContent() {
     const d = inspectorData[currentInspectorKey];
+    document.getElementById('inspEyebrow').textContent = '根拠確認';
     document.getElementById('inspTitle').textContent = d.label;
     const badge = document.getElementById('inspStatusBadge');
+    badge.hidden = false;
     badge.className = 'badge ' + d.status;
     badge.textContent = statusLabel[d.status];
     document.getElementById('inspReason').textContent = d.reason || '抽出根拠のとおりで、確認は不要です。';
 
+    let html = '<div class="inspector-section-label">候補値（クリックで比較）</div><div id="candidateList"></div>';
+    html += '<div class="inspector-section-label" style="margin-top:14px;">出典プレビュー</div><div class="preview-box" id="previewBox"></div>';
+    document.getElementById('inspectorContent').innerHTML = html;
+
     const list = document.getElementById('candidateList');
-    list.innerHTML = '';
     if (d.candidates.length === 0) {
       list.innerHTML = '<div class="no-candidate">候補となる記載が見つかりませんでした。<br>下の入力欄に値を入力して確定できます。</div>';
       document.getElementById('previewBox').innerHTML = '<div class="preview-doc">プレビューなし</div>';
@@ -1050,11 +1212,12 @@
 
   function selectCandidate(i) {
     selectedCandidateIndex = i;
-    renderInspector();
+    renderDetailContent();
   }
 
   function renderPreview(c) {
     const box = document.getElementById('previewBox');
+    if (!box) return;
     let html = '<div class="preview-doc"><span class="src-icon">' + srcIcon[c.type] + '</span>' + c.source.split(' ')[0] + '</div>';
     if (c.type === 'pdf') {
       html += '<div class="preview-tags"><span class="preview-tag">PDF プレビュー</span><span class="preview-tag">p.' + c.page + '</span></div>';
@@ -1093,8 +1256,9 @@
       d.status = 'ok'; d.reason = ''; d.confirmedValue = val;
     }
     updateCellDisplay(key);
+    updateStatusSummary();
     document.getElementById('confirmedFlash').classList.add('show');
-    renderInspector();
+    renderDetailContent();
   }
 
   function updateCellDisplay(key) {
@@ -1108,26 +1272,7 @@
     }
   }
 
-  /* ---------- Inspector 幅のリサイズ ---------- */
-  (function () {
-    const divider = document.getElementById('detailDivider');
-    const panel = document.getElementById('inspector');
-    let dragging = false;
-    divider.addEventListener('mousedown', e => {
-      dragging = true;
-      divider.classList.add('dragging');
-      e.preventDefault();
-    });
-    document.addEventListener('mousemove', e => {
-      if (!dragging) return;
-      const layout = document.querySelector('.detail-layout');
-      const rect = layout.getBoundingClientRect();
-      let w = rect.right - e.clientX;
-      w = Math.max(340, Math.min(680, w));
-      panel.style.width = w + 'px';
-    });
-    document.addEventListener('mouseup', () => { dragging = false; divider.classList.remove('dragging'); });
-  })();
+  updateStatusSummary();
 </script>
 
 </body>
