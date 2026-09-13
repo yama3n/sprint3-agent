@@ -7,12 +7,16 @@
 <style>
   :root {
     --border: #999999;
+    --border-strong: #333333;
     --bg: #ffffff;
     --surface: #f2f2f2;
+    --surface-2: #e6e6e6;
     --text: #1a1a1a;
     --text-secondary: #555555;
     --text-meta: #888888;
-    --radius: 4px;
+    --radius: 6px;
+    --sidebar-w: 220px;
+    --header-h: 56px;
   }
   * { box-sizing: border-box; }
   body {
@@ -21,349 +25,593 @@
     background: var(--bg);
     color: var(--text);
   }
-  #nav {
-    display: flex;
-    gap: 8px;
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--border);
-    background: var(--surface);
-    flex-wrap: wrap;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-  }
-  #nav button {
-    padding: 6px 12px;
-    border: 1px solid var(--border);
-    background: var(--bg);
-    border-radius: var(--radius);
-    cursor: pointer;
-    font-size: 13px;
-  }
-  #nav button.active { background: var(--text); color: var(--bg); }
 
-  main { max-width: 1000px; margin: 0 auto; padding: 24px 16px 80px; }
+  /* ---------- モック確認用ナビ（本番UIではなく、全画面レビュー用の簡易バー） ---------- */
+  #devnav {
+    position: fixed; top: 0; right: 0; z-index: 500;
+    display: flex; gap: 4px; padding: 6px 8px;
+    background: #ffffcc; border: 1px solid var(--border); border-top: none; border-right: none;
+    border-bottom-left-radius: var(--radius);
+    font-size: 11px;
+  }
+  #devnav span { align-self: center; color: var(--text-meta); margin-right: 4px; }
+  #devnav button { font-size: 11px; padding: 3px 6px; border: 1px solid var(--border); background: var(--bg); cursor: pointer; border-radius: 3px; }
+
+  /* ---------- ログイン画面 ---------- */
+  .login-wrap {
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    background: var(--surface);
+  }
+  .login-card {
+    width: 340px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 32px 28px;
+  }
+  .login-logo { font-size: 15px; font-weight: bold; text-align: center; margin-bottom: 4px; }
+  .login-sub { font-size: 12px; color: var(--text-secondary); text-align: center; margin-bottom: 24px; }
+  .field-row { margin-bottom: 14px; }
+  .field-row label { display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; }
+  .field-row input { width: 100%; padding: 9px 10px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; }
+  .login-btn { width: 100%; padding: 10px; margin-top: 8px; }
+
+  /* ---------- アプリシェル：サイドバー + ヘッダー + コンテンツ ---------- */
+  #shell { display: none; }
+  #shell.active { display: flex; min-height: 100vh; }
+
+  .sidebar {
+    width: var(--sidebar-w); flex-shrink: 0; background: var(--text); color: var(--bg);
+    display: flex; flex-direction: column; justify-content: space-between;
+    position: sticky; top: 0; height: 100vh;
+  }
+  .sidebar-top { padding: 18px 16px; }
+  .sidebar-brand { font-size: 14px; font-weight: bold; margin-bottom: 24px; }
+  .sidebar-nav { list-style: none; padding: 0; margin: 0; }
+  .sidebar-nav li { margin-bottom: 4px; }
+  .sidebar-nav button {
+    width: 100%; text-align: left; padding: 9px 12px; border: none; background: none; color: #cccccc;
+    font-size: 13px; border-radius: var(--radius); cursor: pointer; display: flex; align-items: center; gap: 8px;
+  }
+  .sidebar-nav button:hover { background: rgba(255,255,255,0.08); color: var(--bg); }
+  .sidebar-nav button.active { background: var(--bg); color: var(--text); font-weight: bold; }
+  .sidebar-nav button.disabled { color: #777; cursor: not-allowed; }
+  .sidebar-nav .soon { font-size: 10px; border: 1px solid #777; padding: 1px 5px; border-radius: 8px; margin-left: auto; color: #999; }
+  .sidebar-count { margin-left: auto; font-size: 11px; background: rgba(255,255,255,0.15); padding: 1px 7px; border-radius: 10px; }
+
+  .sidebar-bottom { padding: 14px 16px; border-top: 1px solid rgba(255,255,255,0.15); }
+  .user-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .user-avatar { width: 28px; height: 28px; border-radius: 50%; background: #666; color: var(--bg); display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; }
+  .user-name { font-size: 12px; color: var(--bg); }
+  .user-email { font-size: 11px; color: #aaa; }
+  .logout-btn { width: 100%; padding: 6px; font-size: 12px; background: none; border: 1px solid #666; color: #ccc; border-radius: var(--radius); cursor: pointer; }
+  .logout-btn:hover { background: rgba(255,255,255,0.08); }
+
+  .shell-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .topbar {
+    height: var(--header-h); display: flex; align-items: center; justify-content: space-between;
+    padding: 0 24px; border-bottom: 1px solid var(--border); background: var(--bg);
+    position: sticky; top: 0; z-index: 50;
+  }
+  .breadcrumb { font-size: 13px; color: var(--text-secondary); }
+  .breadcrumb .current { color: var(--text); font-weight: bold; }
+  .topbar-actions { display: flex; gap: 8px; }
+
+  .content { padding: 24px 28px 80px; max-width: 1080px; }
   section.screen { display: none; }
   section.screen.active { display: block; }
 
-  h1 { font-size: 20px; margin: 0 0 4px; }
-  h2 { font-size: 16px; margin: 24px 0 8px; border-bottom: 1px solid var(--border); padding-bottom: 4px; }
+  h1 { font-size: 19px; margin: 0 0 4px; }
+  h2 { font-size: 14px; margin: 22px 0 10px; text-transform: uppercase; letter-spacing: .02em; color: var(--text-secondary); }
   .subtitle { color: var(--text-secondary); font-size: 13px; margin-bottom: 16px; }
 
-  .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
   .btn {
-    display: inline-block;
-    padding: 8px 16px;
-    border: 1px solid var(--text);
-    background: var(--text);
-    color: var(--bg);
-    border-radius: var(--radius);
-    cursor: pointer;
-    font-size: 13px;
-    text-decoration: none;
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 16px; border: 1px solid var(--text); background: var(--text); color: var(--bg);
+    border-radius: var(--radius); cursor: pointer; font-size: 13px; text-decoration: none;
   }
   .btn.secondary { background: var(--bg); color: var(--text); }
   .btn.disabled { opacity: 0.4; cursor: not-allowed; }
 
-  /* SCR-01 一覧 */
+  /* ---------- SCR-01 一覧 ---------- */
+  .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .filter-tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+  .filter-tabs button { font-size: 12px; padding: 5px 12px; border: 1px solid var(--border); background: var(--bg); border-radius: 16px; cursor: pointer; }
+  .filter-tabs button.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+
   table.list { width: 100%; border-collapse: collapse; font-size: 13px; }
-  table.list th, table.list td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; }
-  table.list th { background: var(--surface); }
-  .badge { display: inline-block; padding: 2px 8px; border: 1px solid var(--border); border-radius: 12px; font-size: 11px; }
+  table.list th, table.list td { border-bottom: 1px solid var(--border); padding: 10px; text-align: left; }
+  table.list th { color: var(--text-meta); font-weight: normal; font-size: 12px; }
+  table.list tbody tr { cursor: pointer; }
+  table.list tbody tr:hover { background: var(--surface); }
+  table.list tbody tr td:last-child { text-align: right; color: var(--text-meta); }
+  .row-arrow::after { content: "›"; margin-left: 8px; color: var(--text-meta); }
+
+  .badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 9px; border: 1px solid var(--border); border-radius: 12px; font-size: 11px; }
   .badge.confirming { background: var(--surface); }
-  .badge.final { background: var(--text); color: var(--bg); }
-  .badge-count { font-size: 11px; color: var(--text-secondary); }
-  .empty-state { border: 1px dashed var(--border); border-radius: var(--radius); padding: 40px; text-align: center; color: var(--text-secondary); }
+  .badge.final { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .count-link { border: none; background: none; text-decoration: underline; cursor: pointer; font-size: 13px; color: var(--text); padding: 0; }
+  .count-link:hover { color: var(--text-secondary); }
 
-  /* SCR-02 / SCR-05 アップロード */
+  .empty-state { border: 1px dashed var(--border); border-radius: var(--radius); padding: 56px 24px; text-align: center; color: var(--text-secondary); }
+  .empty-illust { margin: 0 auto 16px; display: block; }
+  .empty-state .btn { margin-top: 16px; }
+
+  /* ---------- SCR-02 / SCR-05 アップロード ---------- */
+  .format-chips { display: flex; gap: 8px; margin-bottom: 18px; }
+  .chip { font-size: 12px; border: 1px solid var(--border); border-radius: 12px; padding: 3px 10px; color: var(--text-secondary); }
   .dropzone {
-    border: 2px dashed var(--border);
-    border-radius: var(--radius);
-    padding: 48px 24px;
-    text-align: center;
-    color: var(--text-secondary);
-    margin-bottom: 16px;
+    border: 2px dashed var(--border-strong); border-radius: var(--radius);
+    padding: 56px 24px; text-align: center; margin-bottom: 18px;
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
   }
+  .dropzone.dragover { background: var(--surface); border-color: var(--text); }
+  .dropzone .main-text { font-size: 15px; font-weight: bold; }
+  .dropzone .sub-text { font-size: 12px; color: var(--text-secondary); }
+
   .filelist { list-style: none; padding: 0; margin: 0 0 16px; font-size: 13px; }
-  .filelist li { display: flex; justify-content: space-between; border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 10px; margin-bottom: 6px; }
-  .filelist .remove { color: var(--text-secondary); cursor: pointer; }
-  .inline-error { color: #444; font-size: 12px; border: 1px solid var(--border); padding: 6px 10px; border-radius: var(--radius); margin-bottom: 12px; }
-  .progress { border: 1px solid var(--border); border-radius: var(--radius); height: 10px; overflow: hidden; margin: 16px 0; }
+  .filelist li { display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border); border-radius: var(--radius); padding: 9px 12px; margin-bottom: 6px; }
+  .filelist .remove { color: var(--text-secondary); cursor: pointer; font-size: 12px; }
+  .inline-error { color: #444; font-size: 12px; border: 1px solid var(--border-strong); padding: 8px 12px; border-radius: var(--radius); margin-bottom: 12px; display:flex; gap:6px; }
+
+  .upload-action-row { display: flex; align-items: center; gap: 16px; }
+  .progress-wrap { flex: 1; }
+  .progress { border: 1px solid var(--border); border-radius: var(--radius); height: 8px; overflow: hidden; margin-bottom: 4px; }
   .progress-bar { background: var(--text); height: 100%; width: 62%; }
-  .loading-note { font-size: 13px; color: var(--text-secondary); }
+  .loading-note { font-size: 12px; color: var(--text-secondary); }
 
-  /* SCR-03 詳細 */
-  .header-row { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 8px; }
-  .header-meta { color: var(--text-secondary); font-size: 13px; }
-  .status-strip {
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    background: var(--surface);
-    padding: 10px 14px;
-    font-size: 13px;
-    margin: 12px 0 20px;
-    display: flex;
-    gap: 24px;
-    flex-wrap: wrap;
-  }
-  .status-strip a { color: var(--text); text-decoration: underline; cursor: pointer; }
+  /* ---------- SCR-03 詳細 ---------- */
+  .legend { display: flex; gap: 16px; font-size: 12px; color: var(--text-secondary); margin: 4px 0 18px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 5px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; border: 1px solid var(--border-strong); }
+  .dot.ok { background: var(--bg); }
+  .dot.missing { background: var(--surface); border-style: dashed; }
+  .dot.review { background: var(--surface-2); border-width: 2px; }
+  .dot.web { background: var(--bg); border-style: dotted; border-width: 2px; }
 
-  .field-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
-  .field-card {
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 10px 12px;
-    cursor: pointer;
-    background: var(--bg);
-  }
-  .field-card:hover { background: var(--surface); }
-  .field-label { font-size: 11px; color: var(--text-meta); display: flex; justify-content: space-between; }
-  .field-value { font-size: 14px; margin-top: 4px; }
-  .field-value.missing { color: var(--text-secondary); font-style: italic; }
-  .icon-ok::before { content: "✅ "; }
-  .icon-missing::before { content: "？ "; }
-  .icon-review::before { content: "⚠️ "; }
+  table.summary { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 8px; }
+  table.summary td { padding: 8px 10px; border-bottom: 1px solid var(--surface-2); vertical-align: top; }
+  table.summary td.label { width: 180px; color: var(--text-meta); font-size: 12px; }
+  table.summary tr.clickable { cursor: pointer; }
+  table.summary tr.clickable:hover td { background: var(--surface); }
+  .val-missing { color: var(--text-secondary); font-style: italic; }
+  .val-review { font-weight: bold; border-bottom: 2px dashed var(--border-strong); display:inline-block; }
+  .val-web { border-bottom: 2px dotted var(--border-strong); display:inline-block; }
+  .tag { font-size: 10px; border: 1px solid var(--border); border-radius: 8px; padding: 0 6px; margin-left: 6px; color: var(--text-meta); }
 
-  table.itemlist { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
-  table.itemlist th, table.itemlist td { border: 1px solid var(--border); padding: 6px 8px; text-align: left; }
-  table.itemlist th { background: var(--surface); }
+  table.itemlist { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 4px; }
+  table.itemlist th, table.itemlist td { border-bottom: 1px solid var(--surface-2); padding: 8px; text-align: left; }
+  table.itemlist th { color: var(--text-meta); font-weight: normal; font-size: 12px; }
+  table.itemlist tbody tr:hover td { background: var(--surface); }
   table.itemlist td.clickable { cursor: pointer; }
-  table.itemlist td.clickable:hover { background: var(--surface); }
 
-  .note-tabs { display: flex; gap: 8px; margin-bottom: 8px; }
-  .note-tabs button { padding: 6px 12px; border: 1px solid var(--border); background: var(--bg); border-radius: var(--radius); font-size: 12px; cursor: pointer; }
-  .note-tabs button.active { background: var(--surface); font-weight: bold; }
+  .note-tabs { display: flex; gap: 6px; margin-bottom: 10px; }
+  .note-tabs button { padding: 6px 14px; border: 1px solid var(--border); background: var(--bg); border-radius: 16px; font-size: 12px; cursor: pointer; }
+  .note-tabs button.active { background: var(--text); color: var(--bg); border-color: var(--text); }
   .note-list { list-style: none; padding: 0; margin: 0; font-size: 13px; }
-  .note-list li { border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 10px; margin-bottom: 6px; }
+  .note-list li { border: 1px solid var(--border); border-radius: var(--radius); padding: 9px 12px; margin-bottom: 6px; display: flex; justify-content: space-between; gap: 12px; }
+  .note-list .note-source { font-size: 11px; color: var(--text-meta); white-space: nowrap; }
 
   .action-bar { display: flex; gap: 8px; margin-top: 24px; border-top: 1px solid var(--border); padding-top: 16px; flex-wrap: wrap; }
-  .warning-banner { border: 1px solid var(--border); background: var(--surface); padding: 10px 14px; border-radius: var(--radius); font-size: 13px; margin: 12px 0; }
+  .warning-banner { border: 1px solid var(--border-strong); background: var(--surface); padding: 10px 14px; border-radius: var(--radius); font-size: 13px; margin: 16px 0; }
 
-  /* SCR-04 パネル */
-  .overlay {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.3);
-    display: none; align-items: center; justify-content: center; z-index: 200;
+  /* ---------- SCR-04 出典ドロワー ---------- */
+  .drawer-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.25); display: none; z-index: 400; }
+  .drawer-overlay.active { display: block; }
+  .drawer {
+    position: absolute; top: 0; right: 0; height: 100%; width: 460px; max-width: 92vw;
+    background: var(--bg); border-left: 1px solid var(--border); padding: 20px; overflow-y: auto;
   }
-  .overlay.active { display: flex; }
-  .panel {
-    background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius);
-    width: 90%; max-width: 520px; max-height: 85vh; overflow-y: auto; padding: 20px;
-  }
-  .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-  .source-block { border: 1px solid var(--border); border-radius: var(--radius); padding: 10px; margin: 8px 0; font-size: 13px; background: var(--surface); }
-  .candidate { border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 10px; margin-bottom: 8px; cursor: pointer; font-size: 13px; }
-  .candidate:hover { background: var(--surface); }
-  .panel input[type=text] { width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; margin: 8px 0; }
-  .panel-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+  .drawer-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; }
+  .drawer-header .close { cursor: pointer; font-size: 18px; color: var(--text-secondary); }
+  .drawer-reason { font-size: 12px; color: var(--text-secondary); margin-bottom: 16px; }
 
-  .caption { font-size: 12px; color: var(--text-meta); margin-top: 24px; }
+  .source-tabs { display: flex; gap: 6px; margin-bottom: 10px; }
+  .source-tabs button { font-size: 11px; padding: 4px 10px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg); cursor: pointer; }
+  .source-tabs button.active { background: var(--surface-2); font-weight: bold; }
+
+  .preview-box {
+    border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface);
+    padding: 16px; margin-bottom: 12px; min-height: 220px; display: flex; flex-direction: column; gap: 10px;
+  }
+  .preview-page {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: 14px;
+    font-size: 12px; line-height: 1.7; flex: 1;
+  }
+  .preview-page mark { background: var(--surface-2); border-bottom: 2px solid var(--border-strong); padding: 0 2px; }
+  .preview-pager { display: flex; justify-content: center; align-items: center; gap: 10px; font-size: 12px; color: var(--text-secondary); }
+  .preview-pager button { border: 1px solid var(--border); background: var(--bg); border-radius: 4px; padding: 2px 8px; cursor: pointer; }
+  .preview-meta { font-size: 11px; color: var(--text-meta); }
+
+  .candidate { border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; margin-bottom: 8px; cursor: pointer; font-size: 13px; }
+  .candidate:hover { background: var(--surface); border-color: var(--border-strong); }
+  .candidate.selected { border-color: var(--border-strong); border-width: 2px; }
+
+  .drawer label.small { font-size: 11px; color: var(--text-secondary); display: block; margin: 12px 0 4px; }
+  .drawer input[type=text] { width: 100%; padding: 9px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; }
+  .drawer-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+
+  .caption { font-size: 12px; color: var(--text-meta); margin-top: 20px; }
 </style>
 </head>
 <body>
 
-<nav id="nav">
-  <button data-target="SCR-01" class="active">SCR-01 引合一覧</button>
-  <button data-target="SCR-02">SCR-02 書類アップロード</button>
-  <button data-target="SCR-03">SCR-03 引合詳細（サマリー・確認）</button>
-  <button data-target="SCR-04">SCR-04 項目根拠・修正パネル</button>
-  <button data-target="SCR-05">SCR-05 資料追加アップロード</button>
-</nav>
+<div id="devnav">
+  <span>Mock Nav:</span>
+  <button onclick="devgo('login')">ログイン</button>
+  <button onclick="devgo('SCR-01')">一覧</button>
+  <button onclick="devgo('SCR-02')">アップロード</button>
+  <button onclick="devgo('SCR-03')">詳細</button>
+  <button onclick="devgo('SCR-05')">資料追加</button>
+  <button onclick="openDrawer('エンジ会社')">根拠パネル</button>
+</div>
 
-<main>
-
-<!-- SCR-01 引合一覧 -->
-<section id="SCR-01" class="screen active">
-  <div class="toolbar">
-    <div>
-      <h1>引合一覧</h1>
-      <p class="subtitle">アップロードされた引合の一覧です。</p>
+<!-- SCR-00 ログイン -->
+<section id="login-screen" class="login-wrap">
+  <div class="login-card">
+    <div class="login-logo">引合書整理エージェント</div>
+    <div class="login-sub">営業担当者ログイン</div>
+    <div class="field-row">
+      <label>メールアドレス</label>
+      <input type="text" placeholder="you@company.co.jp" value="sales@toseki-steel.co.jp">
     </div>
-    <button class="btn" data-goto="SCR-02">＋ 新規アップロード</button>
+    <div class="field-row">
+      <label>パスワード</label>
+      <input type="password" placeholder="••••••••" value="••••••••">
+    </div>
+    <button class="btn login-btn" onclick="login()">ログイン</button>
   </div>
-
-  <table class="list">
-    <thead>
-      <tr><th>依頼元企業</th><th>案件名</th><th>状態</th><th>要確認</th><th>不明</th><th>最終更新</th></tr>
-    </thead>
-    <tbody>
-      <tr onclick="show('SCR-03')" style="cursor:pointer">
-        <td>東西石油開発</td><td>北海油田 鋼管更新案件</td>
-        <td><span class="badge confirming">確認中</span></td>
-        <td class="badge-count">3件</td><td class="badge-count">2件</td><td>2026-09-10 14:02</td>
-      </tr>
-      <tr onclick="show('SCR-03')" style="cursor:pointer">
-        <td>北洋エナジー</td><td>資材所要一覧に基づく引合</td>
-        <td><span class="badge final">確定済み</span></td>
-        <td class="badge-count">0件</td><td class="badge-count">0件</td><td>2026-09-08 09:41</td>
-      </tr>
-      <tr onclick="show('SCR-03')" style="cursor:pointer">
-        <td>GulfTex Energy</td><td>Email Thread引合</td>
-        <td><span class="badge confirming">確認中</span></td>
-        <td class="badge-count">5件</td><td class="badge-count">4件</td><td>2026-09-12 18:20</td>
-      </tr>
-    </tbody>
-  </table>
-
-  <p class="caption">（0件時は下記の空状態を表示）</p>
-  <div class="empty-state">まだ引合がありません。書類をアップロードしてください。</div>
 </section>
 
-<!-- SCR-02 書類アップロード -->
-<section id="SCR-02" class="screen">
-  <h1>書類アップロード</h1>
-  <p class="subtitle">Excel（xlsx）・PDF・メール（eml）を一括アップロードすると、新しい引合が自動的に作成されます。案件名や顧客名の入力は不要です。</p>
-
-  <div class="dropzone">ここにファイルをドラッグ＆ドロップ<br>（xlsx / pdf / eml 対応、複数ファイル可）<br><br><button class="btn secondary">ファイルを選択</button></div>
-
-  <div class="inline-error">「見積書.docx」は対応していない形式です（xlsx / pdf / eml のみアップロードできます）</div>
-
-  <ul class="filelist">
-    <li>01_東西石油開発_オーダーリスト.xlsx <span class="remove">✕ 削除</span></li>
-    <li>03_日本海ガス開発_見積依頼書.pdf <span class="remove">✕ 削除</span></li>
-    <li>04_南邦石油_引合メール.eml <span class="remove">✕ 削除</span></li>
-  </ul>
-
-  <button class="btn" data-goto="SCR-03">アップロード開始</button>
-  <button class="btn disabled">アップロード開始（ファイル未選択時は非活性）</button>
-
-  <div class="progress"><div class="progress-bar"></div></div>
-  <p class="loading-note">AIが資料を解析しています…（案件情報・品目情報を抽出中）</p>
-</section>
-
-<!-- SCR-03 引合詳細 -->
-<section id="SCR-03" class="screen">
-  <div class="header-row">
-    <div>
-      <p class="header-meta"><a onclick="show('SCR-01')" style="cursor:pointer">← 引合一覧に戻る</a></p>
-      <h1>東西石油開発 - 北海油田 鋼管更新案件</h1>
-      <p class="header-meta">引合ID: INQ-2026-0091　状態: <span class="badge confirming">確認中</span></p>
+<!-- アプリシェル -->
+<div id="shell">
+  <aside class="sidebar">
+    <div class="sidebar-top">
+      <div class="sidebar-brand">引合書整理エージェント</div>
+      <ul class="sidebar-nav">
+        <li><button class="nav-item active" data-target="SCR-01" data-filter="all" onclick="navClick(this)">📋 引合一覧</button></li>
+        <li><button class="nav-item" data-target="SCR-02" onclick="navClick(this)">＋ 新規アップロード</button></li>
+        <li><button class="nav-item" data-target="SCR-01" data-filter="confirming" onclick="navClick(this)">確認中 <span class="sidebar-count">2</span></button></li>
+        <li><button class="nav-item" data-target="SCR-01" data-filter="final" onclick="navClick(this)">確定済み <span class="sidebar-count">1</span></button></li>
+        <li><button class="nav-item disabled">設定<span class="soon">今後対応</span></button></li>
+        <li><button class="nav-item disabled">ヘルプ<span class="soon">今後対応</span></button></li>
+      </ul>
     </div>
-    <div class="action-bar" style="border:none; margin:0; padding:0;">
-      <button class="btn secondary" data-goto="SCR-05">資料を追加</button>
-      <button class="btn secondary">Excelをダウンロード（_draft）</button>
-      <button class="btn">確定する</button>
-    </div>
-  </div>
-
-  <div class="status-strip">
-    <span>⚠️ 要確認: 3件（<a onclick="openPanel()">数量の矛盾</a> / <a onclick="openPanel()">グレードの曖昧記載</a> / <a onclick="openPanel()">EPCの複数候補</a>）</span>
-    <span>？ 不明: 2件（<a onclick="openPanel()">回答期限</a> / <a onclick="openPanel()">類似案件</a>）</span>
-  </div>
-
-  <h2>案件情報</h2>
-  <div class="field-grid">
-    <div class="field-card"><div class="field-label">依頼元企業<span class="icon-ok"></span></div><div class="field-value">東西石油開発株式会社</div></div>
-    <div class="field-card"><div class="field-label">案件名／プロジェクト名<span class="icon-ok"></span></div><div class="field-value">北海油田 鋼管更新案件</div></div>
-    <div class="field-card"><div class="field-label">引合日<span class="icon-ok"></span></div><div class="field-value">2026-09-01</div></div>
-    <div class="field-card" onclick="openPanel()"><div class="field-label">回答期限／見積期限<span class="icon-missing"></span></div><div class="field-value missing">？ 不明</div></div>
-    <div class="field-card"><div class="field-label">発注国／納入先国<span class="icon-ok"></span></div><div class="field-value">ノルウェー</div></div>
-    <div class="field-card"><div class="field-label">用途<span class="icon-ok"></span></div><div class="field-value">海底パイプライン更新</div></div>
-    <div class="field-card"><div class="field-label">案件背景／概要<span class="icon-ok"></span></div><div class="field-value">既設油田の設備更新に伴う鋼管一括更新</div></div>
-    <div class="field-card"><div class="field-label">発注者／End User<span class="icon-ok"></span></div><div class="field-value">東西石油開発株式会社</div></div>
-    <div class="field-card" onclick="openPanel()"><div class="field-label">エンジ会社<span class="icon-review"></span></div><div class="field-value">⚠️ 要確認（候補2件）</div></div>
-    <div class="field-card" onclick="openPanel()"><div class="field-label">EPC<span class="icon-review"></span></div><div class="field-value">⚠️ 要確認（候補2件）</div></div>
-    <div class="field-card"><div class="field-label">希望納期<span class="icon-ok"></span></div><div class="field-value">2027-03</div></div>
-    <div class="field-card"><div class="field-label">数量感／案件規模<span class="icon-ok"></span></div><div class="field-value">約1,200本</div></div>
-    <div class="field-card" onclick="openPanel()"><div class="field-label">類似案件<span class="icon-missing"></span></div><div class="field-value missing">？ 不明</div></div>
-    <div class="field-card"><div class="field-label">市況<span class="icon-ok"></span></div><div class="field-value">北海圏の油田開発は増加傾向（Web補完）</div></div>
-  </div>
-
-  <h2>品目一覧</h2>
-  <table class="itemlist">
-    <thead>
-      <tr><th>#</th><th>製管方法</th><th>用途</th><th>グレード</th><th>ネジ種</th><th>外径</th><th>肉厚</th><th>長さ</th><th>数量</th></tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>1</td><td>シームレス</td><td>ケーシング</td>
-        <td class="clickable" onclick="openPanel()">⚠️ 要確認</td>
-        <td>API規格</td><td>244.5mm</td><td>13.8mm</td><td>12m</td>
-        <td class="clickable" onclick="openPanel()">⚠️ 要確認</td>
-      </tr>
-      <tr>
-        <td>2</td><td>溶接</td><td>チュービング</td><td>L80</td><td>Premium</td><td>73mm</td><td>7.0mm</td><td>9.5m</td><td>320本</td>
-      </tr>
-    </tbody>
-  </table>
-
-  <h2>その他特記事項</h2>
-  <div class="note-tabs">
-    <button class="active">案件全体</button>
-    <button>品目固有</button>
-  </div>
-  <ul class="note-list">
-    <li>Mill Certificate提出必須（出典: 03_日本海ガス開発_見積依頼書.pdf p.2）</li>
-    <li>第三者検査あり（出典: 04_南邦石油_引合メール.eml 本文）</li>
-    <li>特殊コーティング指定（出典: 01_東西石油開発_オーダーリスト.xlsx シート2 C15）</li>
-  </ul>
-
-  <div class="warning-banner">確定済みの内容を変更しました。再度Excelを出力してください。（確定後に再編集した場合の注意表示）</div>
-</section>
-
-<!-- SCR-04 項目根拠・修正パネル（オーバーレイとして表現。ここでは常時表示のプレビュー） -->
-<section id="SCR-04" class="screen">
-  <h1>項目根拠・修正パネル（SCR-03内のオーバーレイ）</h1>
-  <p class="subtitle">実際は SCR-03 上の項目クリックで下記のようなパネルがモーダル表示されます。</p>
-
-  <div class="panel" style="margin:0 auto;">
-    <div class="panel-header">
-      <div>
-        <strong>エンジ会社</strong>　<span class="badge confirming">⚠️ 要確認</span>
-        <p class="header-meta">理由: 複数資料で異なる値が記載されているため（複数候補）</p>
+    <div class="sidebar-bottom">
+      <div class="user-row">
+        <div class="user-avatar">田</div>
+        <div>
+          <div class="user-name">田中 太郎</div>
+          <div class="user-email">sales@toseki-steel.co.jp</div>
+        </div>
       </div>
-      <span style="cursor:pointer" onclick="show('SCR-03')">✕ 閉じる</span>
+      <button class="logout-btn" onclick="logout()">ログアウト</button>
+    </div>
+  </aside>
+
+  <div class="shell-main">
+    <header class="topbar">
+      <div class="breadcrumb" id="breadcrumb">引合一覧</div>
+      <div class="topbar-actions" id="topbar-actions"></div>
+    </header>
+
+    <div class="content">
+
+      <!-- SCR-01 引合一覧 -->
+      <section id="SCR-01" class="screen active">
+        <div class="toolbar">
+          <h1>引合一覧</h1>
+          <button class="btn" data-goto="SCR-02">＋ 新規アップロード</button>
+        </div>
+
+        <div class="filter-tabs">
+          <button class="filter-btn active" data-filter="all" onclick="filterList(this)">すべて（3）</button>
+          <button class="filter-btn" data-filter="confirming" onclick="filterList(this)">確認中（2）</button>
+          <button class="filter-btn" data-filter="final" onclick="filterList(this)">確定済み（1）</button>
+        </div>
+
+        <table class="list">
+          <thead>
+            <tr><th>依頼元企業</th><th>案件名</th><th>依頼日時</th><th>状態</th><th>要確認</th><th>不明</th><th>最終更新</th></tr>
+          </thead>
+          <tbody>
+            <tr class="row-item" data-status="confirming" onclick="openDetail(event)">
+              <td>東西石油開発</td><td>北海油田 鋼管更新案件</td><td>2026-09-01</td>
+              <td><span class="badge confirming">確認中</span></td>
+              <td><button class="count-link" onclick="event.stopPropagation(); openDetailFilter('review')">3件</button></td>
+              <td><button class="count-link" onclick="event.stopPropagation(); openDetailFilter('missing')">2件</button></td>
+              <td class="row-arrow">2026-09-10 14:02</td>
+            </tr>
+            <tr class="row-item" data-status="final" onclick="openDetail(event)">
+              <td>北洋エナジー</td><td>資材所要一覧に基づく引合</td><td>2026-08-28</td>
+              <td><span class="badge final">確定済み</span></td>
+              <td>0件</td><td>0件</td><td class="row-arrow">2026-09-08 09:41</td>
+            </tr>
+            <tr class="row-item" data-status="confirming" onclick="openDetail(event)">
+              <td>GulfTex Energy</td><td>Email Thread引合</td><td>2026-09-11</td>
+              <td><span class="badge confirming">確認中</span></td>
+              <td><button class="count-link" onclick="event.stopPropagation(); openDetailFilter('review')">5件</button></td>
+              <td><button class="count-link" onclick="event.stopPropagation(); openDetailFilter('missing')">4件</button></td>
+              <td class="row-arrow">2026-09-12 18:20</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <p class="caption">（0件時は下記のような改善済み空状態を表示）</p>
+        <div class="empty-state">
+          <svg class="empty-illust" width="88" height="72" viewBox="0 0 88 72" fill="none">
+            <rect x="14" y="10" width="44" height="56" rx="4" stroke="#999" stroke-width="2"/>
+            <line x1="22" y1="24" x2="48" y2="24" stroke="#bbb" stroke-width="2"/>
+            <line x1="22" y1="34" x2="48" y2="34" stroke="#bbb" stroke-width="2"/>
+            <line x1="22" y1="44" x2="40" y2="44" stroke="#bbb" stroke-width="2"/>
+            <circle cx="64" cy="52" r="16" fill="#fff" stroke="#333" stroke-width="2"/>
+            <line x1="64" y1="44" x2="64" y2="52" stroke="#333" stroke-width="2"/>
+            <line x1="64" y1="52" x2="70" y2="52" stroke="#333" stroke-width="2"/>
+          </svg>
+          <div><strong>まだ引合がありません</strong></div>
+          <p class="subtitle" style="margin:6px 0 0;">書類をアップロードすると、AIが引合内容を自動整理します。</p>
+          <button class="btn" data-goto="SCR-02">＋ 最初の書類をアップロード</button>
+        </div>
+      </section>
+
+      <!-- SCR-02 書類アップロード -->
+      <section id="SCR-02" class="screen">
+        <h1>書類アップロード</h1>
+        <p class="subtitle">Excel・PDF・メールをアップロードすると、新しい引合が自動的に作成されます。案件名や顧客名の入力は不要です。</p>
+
+        <div class="format-chips">
+          <span class="chip">📊 Excel（.xlsx）</span>
+          <span class="chip">📄 PDF（.pdf）</span>
+          <span class="chip">✉️ メール（.eml）</span>
+        </div>
+
+        <div class="dropzone">
+          <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+            <path d="M20 6v20M12 18l8-8 8 8" stroke="#333" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <rect x="6" y="30" width="28" height="4" rx="1" fill="#333"/>
+          </svg>
+          <div class="main-text">ここにドラッグ＆ドロップ</div>
+          <div class="sub-text">または</div>
+          <button class="btn secondary">ファイルを選択</button>
+        </div>
+
+        <div class="inline-error">⚠️ 「見積書.docx」は対応していない形式です（Excel / PDF / メールのみアップロードできます）</div>
+
+        <ul class="filelist">
+          <li>📊 01_東西石油開発_オーダーリスト.xlsx <span class="remove">✕ 削除</span></li>
+          <li>📄 03_日本海ガス開発_見積依頼書.pdf <span class="remove">✕ 削除</span></li>
+          <li>✉️ 04_南邦石油_引合メール.eml <span class="remove">✕ 削除</span></li>
+        </ul>
+
+        <div class="upload-action-row">
+          <button class="btn" data-goto="SCR-03">アップロード開始</button>
+          <div class="progress-wrap">
+            <div class="progress"><div class="progress-bar"></div></div>
+            <div class="loading-note">AIが資料を解析しています…（案件情報・品目情報を抽出中）</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SCR-03 引合詳細 -->
+      <section id="SCR-03" class="screen">
+        <div class="toolbar">
+          <div>
+            <h1>東西石油開発 - 北海油田 鋼管更新案件</h1>
+            <p class="subtitle" style="margin-bottom:0;">引合ID: INQ-2026-0091　依頼日時: 2026-09-01</p>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <span class="badge confirming" style="align-self:center;">確認中</span>
+          </div>
+        </div>
+
+        <div class="legend">
+          <span class="legend-item"><span class="dot ok"></span>確認不要</span>
+          <span class="legend-item"><span class="dot missing"></span>？ 不明</span>
+          <span class="legend-item"><span class="dot review"></span>⚠️ 要確認</span>
+          <span class="legend-item"><span class="dot web"></span>🌐 Web補完</span>
+        </div>
+
+        <h2>案件サマリー</h2>
+        <table class="summary">
+          <tr class="clickable" onclick="openDrawer('依頼元企業')"><td class="label">依頼元企業</td><td>東西石油開発株式会社</td></tr>
+          <tr class="clickable" onclick="openDrawer('案件名')"><td class="label">案件名／プロジェクト名</td><td>北海油田 鋼管更新案件</td></tr>
+          <tr class="clickable" onclick="openDrawer('引合日')"><td class="label">引合日</td><td>2026-09-01</td></tr>
+          <tr class="clickable" onclick="openDrawer('回答期限')"><td class="label">回答期限／見積期限</td><td><span class="val-missing">？ 不明</span></td></tr>
+          <tr class="clickable" onclick="openDrawer('発注国')"><td class="label">発注国／納入先国</td><td>ノルウェー</td></tr>
+          <tr class="clickable" onclick="openDrawer('用途')"><td class="label">用途</td><td>海底パイプライン更新</td></tr>
+          <tr class="clickable" onclick="openDrawer('背景')"><td class="label">案件背景／概要</td><td>既設油田の設備更新に伴う鋼管一括更新</td></tr>
+          <tr class="clickable" onclick="openDrawer('発注者')"><td class="label">発注者／End User</td><td>東西石油開発株式会社</td></tr>
+          <tr class="clickable" onclick="openDrawer('エンジ会社')"><td class="label">エンジ会社</td><td><span class="val-review">⚠️ 要確認</span><span class="tag">候補2件</span></td></tr>
+          <tr class="clickable" onclick="openDrawer('EPC')"><td class="label">EPC</td><td><span class="val-review">⚠️ 要確認</span><span class="tag">候補2件</span></td></tr>
+          <tr class="clickable" onclick="openDrawer('希望納期')"><td class="label">希望納期</td><td>2027-03</td></tr>
+          <tr class="clickable" onclick="openDrawer('数量感')"><td class="label">数量感／案件規模</td><td>約1,200本</td></tr>
+          <tr class="clickable" onclick="openDrawer('類似案件')"><td class="label">類似案件</td><td><span class="val-missing">？ 不明</span></td></tr>
+          <tr class="clickable" onclick="openDrawer('市況')"><td class="label">市況</td><td><span class="val-web">🌐 北海圏の油田開発は増加傾向</span><span class="tag">Web補完</span></td></tr>
+        </table>
+
+        <h2>品目一覧</h2>
+        <table class="itemlist">
+          <thead>
+            <tr><th>#</th><th>製管方法</th><th>用途</th><th>グレード</th><th>ネジ種</th><th>外径</th><th>肉厚</th><th>長さ</th><th>数量</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>1</td><td>シームレス</td><td>ケーシング</td>
+              <td class="clickable" onclick="openDrawer('グレード（品目1）')"><span class="val-review">⚠️ 要確認</span></td>
+              <td>API規格</td><td>244.5mm</td><td>13.8mm</td><td>12m</td>
+              <td class="clickable" onclick="openDrawer('数量（品目1）')"><span class="val-review">⚠️ 要確認</span></td>
+            </tr>
+            <tr>
+              <td>2</td><td>溶接</td><td>チュービング</td><td>L80</td><td>Premium</td><td>73mm</td><td>7.0mm</td><td>9.5m</td><td>320本</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h2>その他特記事項</h2>
+        <div class="note-tabs">
+          <button class="active" onclick="switchNoteTab(this,'case')">案件全体</button>
+          <button onclick="switchNoteTab(this,'item')">品目固有</button>
+        </div>
+        <ul class="note-list" id="note-case">
+          <li><span>Mill Certificate提出必須</span><span class="note-source">03_見積依頼書.pdf p.2</span></li>
+          <li><span>第三者検査あり</span><span class="note-source">04_引合メール.eml 本文</span></li>
+        </ul>
+        <ul class="note-list" id="note-item" style="display:none;">
+          <li><span>品目1: 特殊コーティング指定</span><span class="note-source">01_オーダーリスト.xlsx シート2 C15</span></li>
+        </ul>
+
+        <div class="warning-banner">確定済みの内容を変更しました。再度Excelを出力してください。（確定後に再編集した場合の注意表示）</div>
+
+        <div class="action-bar">
+          <button class="btn secondary" data-goto="SCR-05">📎 資料を追加</button>
+          <button class="btn secondary">⬇ Excelをダウンロード（_draft）</button>
+          <button class="btn">✔ 確定する</button>
+        </div>
+      </section>
+
+      <!-- SCR-05 資料追加アップロード -->
+      <section id="SCR-05" class="screen">
+        <h1>資料を追加</h1>
+        <p class="subtitle">対象の引合: <strong>東西石油開発 - 北海油田 鋼管更新案件</strong>（引合ID: INQ-2026-0091）</p>
+
+        <div class="format-chips">
+          <span class="chip">📊 Excel（.xlsx）</span>
+          <span class="chip">📄 PDF（.pdf）</span>
+          <span class="chip">✉️ メール（.eml）</span>
+        </div>
+
+        <div class="dropzone">
+          <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+            <path d="M20 6v20M12 18l8-8 8 8" stroke="#333" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <rect x="6" y="30" width="28" height="4" rx="1" fill="#333"/>
+          </svg>
+          <div class="main-text">ここに追加資料をドラッグ＆ドロップ</div>
+          <div class="sub-text">または</div>
+          <button class="btn secondary">ファイルを選択</button>
+        </div>
+
+        <ul class="filelist">
+          <li>📄 05_大陸資源開発_坑井資材調達仕様書.pdf <span class="remove">✕ 削除</span></li>
+        </ul>
+
+        <button class="btn" data-goto="SCR-03">追加する</button>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<!-- SCR-04 出典ドロワー -->
+<div class="drawer-overlay" id="drawer-overlay" onclick="closeDrawerOnOverlay(event)">
+  <div class="drawer" onclick="event.stopPropagation()">
+    <div class="drawer-header">
+      <div>
+        <strong id="drawer-title">エンジ会社</strong>
+        <div class="drawer-reason">理由: 複数資料で異なる値が記載されているため（複数候補）</div>
+      </div>
+      <span class="close" onclick="closeDrawer()">✕</span>
     </div>
 
-    <p class="header-meta">候補値と出典</p>
-    <div class="candidate">
-      <strong>候補1: 北海エンジニアリング株式会社</strong>
-      <div class="source-block">出典（PDF）: 03_日本海ガス開発_見積依頼書.pdf / p.1 / 「エンジニアリング会社: 北海エンジニアリング（株）」</div>
-    </div>
-    <div class="candidate">
-      <strong>候補2: Hokkai Engineering Co., Ltd.</strong>
-      <div class="source-block">出典（EML）: 04_南邦石油_引合メール.eml / 本文3段落目 / "engineering firm is Hokkai Engineering Co., Ltd."</div>
+    <div class="source-tabs">
+      <button class="active">候補1（PDF）</button>
+      <button>候補2（EML）</button>
     </div>
 
-    <label class="header-meta">確定する値</label>
+    <div class="preview-box">
+      <div class="preview-page">
+        03_日本海ガス開発_見積依頼書.pdf<br><br>
+        ・・・仕様概要　・・・<br>
+        エンジニアリング会社: <mark>北海エンジニアリング（株）</mark><br>
+        発注者: 東西石油開発株式会社<br>
+        ・・・
+      </div>
+      <div class="preview-pager">
+        <button>‹</button><span>p. 1 / 2</span><button>›</button>
+      </div>
+    </div>
+    <div class="preview-meta">同じ「出典プレビュー」UIを、EML（本文該当箇所）・Excel（シート・セル）・Web（参照元ページ）にも同様に拡張する。</div>
+
+    <label class="small">候補値（クリックで選択）</label>
+    <div class="candidate selected">北海エンジニアリング株式会社　<span class="note-source">出典: PDF p.1</span></div>
+    <div class="candidate">Hokkai Engineering Co., Ltd.　<span class="note-source">出典: EML 本文3段落目</span></div>
+
+    <label class="small">確定する値</label>
     <input type="text" value="北海エンジニアリング株式会社">
 
-    <div class="panel-footer">
-      <button class="btn secondary" onclick="show('SCR-03')">閉じる</button>
-      <button class="btn" onclick="show('SCR-03')">この値を確定する</button>
+    <div class="drawer-footer">
+      <button class="btn secondary" onclick="closeDrawer()">閉じる</button>
+      <button class="btn" onclick="closeDrawer()">この値を確定する</button>
     </div>
   </div>
-
-  <p class="caption">Web補完の場合の出典表示例:</p>
-  <div class="source-block" style="max-width:520px;">出典（Web補完）: URL https://example.com/company/hokkai-eng ／ 参照元名称: 北海エンジニアリング公式サイト ／ 参照日時: 2026-09-12 10:15</div>
-</section>
-
-<!-- SCR-05 資料追加アップロード -->
-<section id="SCR-05" class="screen">
-  <p class="header-meta"><a onclick="show('SCR-03')" style="cursor:pointer">← 引合詳細に戻る</a></p>
-  <h1>資料を追加</h1>
-  <p class="subtitle">対象の引合: <strong>東西石油開発 - 北海油田 鋼管更新案件</strong>（引合ID: INQ-2026-0091）</p>
-
-  <div class="dropzone">ここに追加資料をドラッグ＆ドロップ<br>（xlsx / pdf / eml 対応、複数ファイル可）<br><br><button class="btn secondary">ファイルを選択</button></div>
-
-  <ul class="filelist">
-    <li>05_大陸資源開発_坑井資材調達仕様書.pdf <span class="remove">✕ 削除</span></li>
-  </ul>
-
-  <button class="btn" data-goto="SCR-03">追加する</button>
-</section>
-
-</main>
+</div>
 
 <script>
-  function show(id) {
-    document.querySelectorAll('section.screen').forEach(s => s.classList.remove('active'));
-    document.getElementById(id).classList.add('active');
-    document.querySelectorAll('#nav button').forEach(b => b.classList.toggle('active', b.dataset.target === id));
-    window.scrollTo(0,0);
+  function login() {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('shell').classList.add('active');
   }
-  document.querySelectorAll('#nav button').forEach(b => b.addEventListener('click', () => show(b.dataset.target)));
-  document.querySelectorAll('[data-goto]').forEach(b => b.addEventListener('click', () => show(b.dataset.goto)));
-  function openPanel() { show('SCR-04'); }
+  function logout() {
+    document.getElementById('shell').classList.remove('active');
+    document.getElementById('login-screen').style.display = 'flex';
+  }
+  function devgo(target) {
+    if (target === 'login') { logout(); return; }
+    login();
+    showScreen(target);
+  }
+
+  const breadcrumbs = {
+    'SCR-01': '引合一覧',
+    'SCR-02': '引合一覧 › 新規アップロード',
+    'SCR-03': '引合一覧 › 東西石油開発 - 北海油田 鋼管更新案件',
+    'SCR-05': '引合一覧 › 東西石油開発 - 北海油田 鋼管更新案件 › 資料を追加'
+  };
+
+  function showScreen(id) {
+    document.querySelectorAll('.content .screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    document.getElementById('breadcrumb').textContent = breadcrumbs[id] || id;
+    document.querySelectorAll('.sidebar-nav .nav-item').forEach(b => {
+      b.classList.toggle('active', b.dataset.target === id && !b.dataset.filter);
+    });
+  }
+  document.querySelectorAll('[data-goto]').forEach(b => b.addEventListener('click', () => showScreen(b.dataset.goto)));
+
+  function navClick(btn) {
+    showScreen(btn.dataset.target);
+    if (btn.dataset.target === 'SCR-01') {
+      document.querySelectorAll('.sidebar-nav .nav-item[data-target="SCR-01"]').forEach(b => b.classList.toggle('active', b === btn));
+      applyFilter(btn.dataset.filter || 'all');
+    } else {
+      document.querySelectorAll('.sidebar-nav .nav-item').forEach(b => b.classList.toggle('active', b === btn));
+    }
+  }
+
+  function filterList(btn) {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    applyFilter(btn.dataset.filter);
+  }
+  function applyFilter(filter) {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === filter));
+    document.querySelectorAll('.row-item').forEach(row => {
+      row.style.display = (filter === 'all' || row.dataset.status === filter) ? '' : 'none';
+    });
+  }
+
+  function openDetail(e) { showScreen('SCR-03'); }
+  function openDetailFilter(kind) { showScreen('SCR-03'); /* 実装では kind(review/missing) にスクロール・絞り込み */ }
+
+  function switchNoteTab(btn, kind) {
+    document.querySelectorAll('.note-tabs button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('note-case').style.display = kind === 'case' ? '' : 'none';
+    document.getElementById('note-item').style.display = kind === 'item' ? '' : 'none';
+  }
+
+  function openDrawer(fieldName) {
+    document.getElementById('drawer-title').textContent = fieldName;
+    document.getElementById('drawer-overlay').classList.add('active');
+  }
+  function closeDrawer() { document.getElementById('drawer-overlay').classList.remove('active'); }
+  function closeDrawerOnOverlay(e) { if (e.target.id === 'drawer-overlay') closeDrawer(); }
 </script>
 
 </body>
