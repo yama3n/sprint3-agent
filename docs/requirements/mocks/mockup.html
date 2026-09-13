@@ -3,245 +3,430 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>引合書整理エージェント - 構造モック</title>
+<title>引合書整理エージェント - デザインモック</title>
 <style>
   :root {
-    --border: #999999;
-    --border-strong: #333333;
-    --bg: #ffffff;
-    --surface: #f2f2f2;
-    --surface-2: #e6e6e6;
-    --text: #1a1a1a;
-    --text-secondary: #555555;
-    --text-meta: #888888;
-    --radius: 6px;
-    --sidebar-w: 220px;
+    /* ベース（無彩色・業務ツール基調） */
+    --bg: #f4f5f6;
+    --surface: #ffffff;
+    --surface-2: #eef0f1;
+    --surface-3: #e4e7e9;
+    --border: #dde0e3;
+    --border-strong: #c2c7cc;
+    --text: #1b1d1f;
+    --text-secondary: #5c6368;
+    --text-meta: #8b9198;
+    --radius-sm: 6px;
+    --radius: 10px;
+    --radius-lg: 14px;
+    --sidebar-w: 232px;
     --header-h: 56px;
+    --shadow-1: 0 1px 2px rgba(20,22,24,0.06), 0 1px 1px rgba(20,22,24,0.04);
+    --shadow-2: 0 8px 24px rgba(15,16,18,0.14);
+
+    /* サイドバー（黒〜チャコールのグラデーション） */
+    --sb-grad: linear-gradient(165deg, #1c1e21 0%, #131417 55%, #0b0c0d 100%);
+    --sb-text: #c7cbcf;
+    --sb-text-dim: #797f85;
+    --sb-active-bg: rgba(255,255,255,0.09);
+    --sb-hover-bg: rgba(255,255,255,0.05);
+    --sb-border: rgba(255,255,255,0.08);
+    --sb-accent: #e7e9ea;
+
+    /* 状態アクセント（必要最低限） */
+    --c-review: #a9781f;
+    --c-review-bg: #faf2e2;
+    --c-review-border: #ecdab3;
+    --c-missing: #5c6773;
+    --c-missing-bg: #eef0f2;
+    --c-missing-border: #d7dce1;
+    --c-alert: #ab3126;
+    --c-alert-bg: #fbeae8;
+    --c-alert-border: #f0c6c0;
+    --c-web: #2f7a75;
+    --c-web-bg: #e7f3f2;
+    --c-web-border: #c3e0dd;
+    --c-success: #2c7a4d;
+    --c-success-bg: #e7f4ec;
+    --c-success-border: #c3e4d0;
   }
   * { box-sizing: border-box; }
   body {
     margin: 0;
-    font-family: "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+    font-family: "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", sans-serif;
     background: var(--bg);
     color: var(--text);
+    -webkit-font-smoothing: antialiased;
   }
+  ::selection { background: #cfd3d6; }
 
   /* ---------- モック確認用ナビ（本番UIではなく、全画面レビュー用の簡易バー） ---------- */
   #devnav {
-    position: fixed; top: 0; right: 0; z-index: 500;
-    display: flex; gap: 4px; padding: 6px 8px;
-    background: #ffffcc; border: 1px solid var(--border); border-top: none; border-right: none;
-    border-bottom-left-radius: var(--radius);
+    position: fixed; top: 0; right: 0; z-index: 900;
+    display: flex; gap: 4px; padding: 6px 8px; align-items: center;
+    background: #fff7d6; border: 1px solid #e3d27a; border-top: none; border-right: none;
+    border-bottom-left-radius: var(--radius-sm);
     font-size: 11px;
   }
-  #devnav span { align-self: center; color: var(--text-meta); margin-right: 4px; }
-  #devnav button { font-size: 11px; padding: 3px 6px; border: 1px solid var(--border); background: var(--bg); cursor: pointer; border-radius: 3px; }
+  #devnav span { color: #8a7a2a; margin-right: 4px; }
+  #devnav button { font-size: 11px; padding: 3px 7px; border: 1px solid #e3d27a; background: #fff; cursor: pointer; border-radius: 4px; }
+  #devnav button:hover { background: #fffbe8; }
 
   /* ---------- ログイン画面 ---------- */
   .login-wrap {
     min-height: 100vh; display: flex; align-items: center; justify-content: center;
-    background: var(--surface);
+    background: radial-gradient(1200px 700px at 20% 10%, #23262a 0%, #101113 45%, #08090a 100%);
   }
   .login-card {
-    width: 340px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius);
-    padding: 32px 28px;
+    width: 360px; background: var(--surface); border-radius: var(--radius-lg);
+    padding: 36px 32px; box-shadow: var(--shadow-2);
   }
-  .login-logo { font-size: 15px; font-weight: bold; text-align: center; margin-bottom: 4px; }
-  .login-sub { font-size: 12px; color: var(--text-secondary); text-align: center; margin-bottom: 24px; }
+  .login-mark {
+    width: 40px; height: 40px; border-radius: 10px; margin: 0 auto 16px;
+    background: linear-gradient(155deg, #2a2d31, #0d0e10);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .login-mark svg { width: 20px; height: 20px; }
+  .login-logo { font-size: 15px; font-weight: 700; text-align: center; margin-bottom: 4px; letter-spacing: .01em; }
+  .login-sub { font-size: 12px; color: var(--text-secondary); text-align: center; margin-bottom: 26px; }
   .field-row { margin-bottom: 14px; }
-  .field-row label { display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; }
-  .field-row input { width: 100%; padding: 9px 10px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; }
-  .login-btn { width: 100%; padding: 10px; margin-top: 8px; }
+  .field-row label { display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 5px; font-weight: 500; }
+  .field-row input {
+    width: 100%; padding: 10px 12px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
+    font-size: 14px; background: var(--surface); transition: border-color .15s, box-shadow .15s;
+  }
+  .field-row input:focus { outline: none; border-color: #2a2d31; box-shadow: 0 0 0 3px rgba(20,22,24,0.08); }
+  .login-btn { width: 100%; padding: 11px; margin-top: 10px; justify-content: center; font-weight: 600; }
+  .login-error { display: none; font-size: 12px; color: var(--c-alert); background: var(--c-alert-bg); border: 1px solid var(--c-alert-border); border-radius: var(--radius-sm); padding: 8px 10px; margin-bottom: 14px; }
+  .login-error.active { display: block; }
 
   /* ---------- アプリシェル：サイドバー + ヘッダー + コンテンツ ---------- */
   #shell { display: none; }
   #shell.active { display: flex; min-height: 100vh; }
 
   .sidebar {
-    width: var(--sidebar-w); flex-shrink: 0; background: var(--text); color: var(--bg);
+    width: var(--sidebar-w); flex-shrink: 0; background: var(--sb-grad); color: var(--sb-text);
     display: flex; flex-direction: column; justify-content: space-between;
     position: sticky; top: 0; height: 100vh;
   }
-  .sidebar-top { padding: 18px 16px; }
-  .sidebar-brand { font-size: 14px; font-weight: bold; margin-bottom: 24px; }
-  .sidebar-group-label { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: .04em; margin: 18px 0 6px 12px; }
-  .sidebar-group-label:first-of-type { margin-top: 0; }
-  .sidebar-nav { list-style: none; padding: 0; margin: 0; }
-  .sidebar-nav li { margin-bottom: 4px; }
-  .sidebar-nav button {
-    width: 100%; text-align: left; padding: 9px 12px; border: none; background: none; color: #cccccc;
-    font-size: 13px; border-radius: var(--radius); cursor: pointer; display: flex; align-items: center; gap: 8px;
+  .sidebar-top { padding: 20px 14px 8px; overflow-y: auto; }
+  .sidebar-brand { display: flex; align-items: center; gap: 10px; padding: 0 6px; margin-bottom: 26px; }
+  .brand-mark {
+    width: 30px; height: 30px; border-radius: 8px; flex-shrink: 0;
+    background: linear-gradient(155deg, #3a3e43, #101113); display: flex; align-items: center; justify-content: center;
+    border: 1px solid rgba(255,255,255,0.08);
   }
-  .sidebar-nav button:not(.disabled):hover { background: rgba(255,255,255,0.08); color: var(--bg); }
-  .sidebar-nav button.active { background: var(--bg); color: var(--text); font-weight: bold; }
-  .sidebar-nav button.disabled { color: #666; cursor: default; pointer-events: none; }
-  .sidebar-nav .soon { font-size: 10px; border: 1px solid #666; padding: 1px 5px; border-radius: 8px; margin-left: auto; color: #888; flex-shrink: 0; }
-  .sidebar-count { margin-left: auto; font-size: 11px; background: rgba(255,255,255,0.15); padding: 1px 7px; border-radius: 10px; }
+  .brand-mark svg { width: 16px; height: 16px; color: #e9ebec; }
+  .brand-name { font-size: 13px; font-weight: 700; color: #f1f2f3; line-height: 1.3; letter-spacing: .01em; }
 
-  .sidebar-bottom { padding: 14px 16px; border-top: 1px solid rgba(255,255,255,0.15); }
-  .user-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-  .user-avatar { width: 28px; height: 28px; border-radius: 50%; background: #666; color: var(--bg); display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; }
-  .user-name { font-size: 12px; color: var(--bg); }
-  .user-email { font-size: 11px; color: #aaa; }
-  .logout-btn { width: 100%; padding: 6px; font-size: 12px; background: none; border: 1px solid #666; color: #ccc; border-radius: var(--radius); cursor: pointer; }
-  .logout-btn:hover { background: rgba(255,255,255,0.08); }
+  .sidebar-nav { list-style: none; padding: 0; margin: 0 0 6px; }
+  .sidebar-nav li { margin-bottom: 2px; }
+  .sidebar-nav button {
+    width: 100%; text-align: left; padding: 9px 10px; border: none; background: none; color: var(--sb-text);
+    font-size: 13px; border-radius: var(--radius-sm); cursor: pointer; display: flex; align-items: center; gap: 10px;
+    position: relative; transition: background .12s, color .12s;
+  }
+  .sidebar-nav button .ic { width: 17px; height: 17px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+  .sidebar-nav button .ic svg { width: 100%; height: 100%; stroke: currentColor; }
+  .sidebar-nav button:not(.disabled):hover { background: var(--sb-hover-bg); color: #f1f2f3; }
+  .sidebar-nav button.active { background: var(--sb-active-bg); color: #ffffff; font-weight: 600; }
+  .sidebar-nav button.active::before {
+    content: ""; position: absolute; left: -14px; top: 8px; bottom: 8px; width: 3px;
+    border-radius: 2px; background: var(--sb-accent);
+  }
+  .sidebar-nav button.disabled { color: var(--sb-text-dim); cursor: default; }
+  .sidebar-nav .soon {
+    font-size: 9.5px; border: 1px solid rgba(255,255,255,0.15); padding: 1px 6px; border-radius: 8px;
+    margin-left: auto; color: var(--sb-text-dim); flex-shrink: 0; letter-spacing: .01em;
+  }
+  .sidebar-count {
+    margin-left: auto; font-size: 11px; font-weight: 600; background: rgba(255,255,255,0.12); color: #f1f2f3;
+    padding: 1px 7px; border-radius: 10px; min-width: 20px; text-align: center;
+  }
+  .sidebar-divider { height: 1px; background: var(--sb-border); margin: 12px 6px 10px; }
+
+  .sidebar-bottom { padding: 14px 14px 16px; border-top: 1px solid var(--sb-border); }
+  .user-row { display: flex; align-items: center; gap: 9px; margin-bottom: 10px; padding: 0 2px; }
+  .user-avatar {
+    width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0; font-size: 12px; font-weight: 700;
+    background: linear-gradient(155deg, #4a4e54, #202226); color: #f1f2f3; display: flex; align-items: center; justify-content: center;
+  }
+  .user-name { font-size: 12.5px; color: #f1f2f3; font-weight: 600; }
+  .user-email { font-size: 11px; color: var(--sb-text-dim); }
+  .logout-btn {
+    width: 100%; padding: 8px; font-size: 12.5px; background: none; border: 1px solid rgba(255,255,255,0.14);
+    color: var(--sb-text); border-radius: var(--radius-sm); cursor: pointer; display: flex; align-items: center; gap: 8px;
+  }
+  .logout-btn:hover { background: var(--sb-hover-bg); color: #fff; border-color: rgba(255,255,255,0.22); }
+  .logout-btn .ic { width: 15px; height: 15px; }
+  .logout-btn .ic svg { width: 100%; height: 100%; stroke: currentColor; }
 
   .shell-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
   .topbar {
     height: var(--header-h); display: flex; align-items: center; justify-content: space-between;
-    padding: 0 24px; border-bottom: 1px solid var(--border); background: var(--bg);
+    padding: 0 26px; border-bottom: 1px solid var(--border); background: var(--surface);
     position: sticky; top: 0; z-index: 50;
   }
   .breadcrumb { font-size: 13px; color: var(--text-secondary); }
-  .breadcrumb .current { color: var(--text); font-weight: bold; }
+  .breadcrumb .current { color: var(--text); font-weight: 700; }
   .topbar-actions { display: flex; gap: 8px; }
 
-  .content { padding: 24px 28px 80px; max-width: 1080px; }
+  .content { padding: 26px 30px 90px; max-width: 1240px; }
   section.screen { display: none; }
   section.screen.active { display: block; }
 
-  h1 { font-size: 19px; margin: 0 0 4px; }
-  h2 { font-size: 14px; margin: 22px 0 10px; text-transform: uppercase; letter-spacing: .02em; color: var(--text-secondary); }
+  h1 { font-size: 19px; margin: 0 0 4px; letter-spacing: .01em; }
+  h2 { font-size: 12.5px; margin: 24px 0 10px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-meta); font-weight: 700; }
   .subtitle { color: var(--text-secondary); font-size: 13px; margin-bottom: 16px; }
 
   .btn {
     display: inline-flex; align-items: center; gap: 6px;
-    padding: 8px 16px; border: 1px solid var(--text); background: var(--text); color: var(--bg);
-    border-radius: var(--radius); cursor: pointer; font-size: 13px; text-decoration: none;
+    padding: 9px 16px; border: 1px solid #17181a; background: #17181a; color: #fff;
+    border-radius: var(--radius-sm); cursor: pointer; font-size: 13px; text-decoration: none; font-weight: 600;
+    transition: background .12s, transform .06s;
   }
-  .btn.secondary { background: var(--bg); color: var(--text); }
-  .btn.disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn:hover { background: #2a2c2f; }
+  .btn:active { transform: translateY(1px); }
+  .btn.secondary { background: var(--surface); color: var(--text); border-color: var(--border-strong); }
+  .btn.secondary:hover { background: var(--surface-2); }
+  .btn.disabled, .btn:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+  .btn.sm { padding: 6px 12px; font-size: 12px; }
+
+  /* ---------- 状態バッジ 共通 ---------- */
+  .badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 12px; font-size: 11.5px; font-weight: 600; border: 1px solid transparent; }
+  .badge.confirming { background: var(--surface-2); color: var(--text-secondary); border-color: var(--border-strong); }
+  .badge.final { background: var(--c-success-bg); color: var(--c-success); border-color: var(--c-success-border); }
+  .badge.review { background: var(--c-review-bg); color: var(--c-review); border-color: var(--c-review-border); }
+  .badge.missing { background: var(--c-missing-bg); color: var(--c-missing); border-color: var(--c-missing-border); }
+  .badge.alert { background: var(--c-alert-bg); color: var(--c-alert); border-color: var(--c-alert-border); }
+  .badge.web { background: var(--c-web-bg); color: var(--c-web); border-color: var(--c-web-border); }
+  .badge.ok { background: var(--surface-2); color: var(--text-secondary); border-color: var(--border); }
+  .badge .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
 
   /* ---------- SCR-01 一覧 ---------- */
-  .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-  .filter-tabs { display: flex; gap: 6px; margin-bottom: 14px; }
-  .filter-tabs button { font-size: 12px; padding: 5px 12px; border: 1px solid var(--border); background: var(--bg); border-radius: 16px; cursor: pointer; }
-  .filter-tabs button.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; gap: 12px; flex-wrap: wrap; }
+  .filter-tabs { display: flex; gap: 6px; margin-bottom: 16px; }
+  .filter-tabs button { font-size: 12.5px; padding: 6px 14px; border: 1px solid var(--border-strong); background: var(--surface); border-radius: 16px; cursor: pointer; color: var(--text-secondary); font-weight: 500; }
+  .filter-tabs button.active { background: #17181a; color: #fff; border-color: #17181a; }
+  .filter-tabs button:not(.active):hover { background: var(--surface-2); }
 
+  .list-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-1); }
   table.list { width: 100%; border-collapse: collapse; font-size: 13px; }
-  table.list th, table.list td { border-bottom: 1px solid var(--border); padding: 10px; text-align: left; }
-  table.list th { color: var(--text-meta); font-weight: normal; font-size: 12px; }
-  table.list tbody tr { cursor: pointer; }
-  table.list tbody tr:hover { background: var(--surface); }
-  table.list tbody tr td:last-child { text-align: right; color: var(--text-meta); }
-  .row-arrow::after { content: "›"; margin-left: 8px; color: var(--text-meta); }
+  table.list th, table.list td { border-bottom: 1px solid var(--border); padding: 12px 14px; text-align: left; }
+  table.list th { color: var(--text-meta); font-weight: 600; font-size: 11.5px; text-transform: uppercase; letter-spacing: .03em; background: var(--surface-2); }
+  table.list tbody tr { cursor: pointer; transition: background .1s; }
+  table.list tbody tr:last-child td { border-bottom: none; }
+  table.list tbody tr:hover { background: #f7f8f8; }
+  table.list tbody tr td:last-child { text-align: right; color: var(--text-meta); white-space: nowrap; }
+  .row-arrow::after { content: "›"; margin-left: 8px; color: var(--text-meta); font-weight: 700; }
+  .count-cell { display: flex; gap: 6px; }
+  .count-link {
+    border: 1px solid var(--border-strong); background: var(--surface); cursor: pointer; font-size: 12px; font-weight: 700;
+    padding: 2px 9px; border-radius: 10px; color: var(--text-secondary); display: inline-flex; align-items: center; gap: 4px;
+  }
+  .count-link.review { color: var(--c-review); border-color: var(--c-review-border); background: var(--c-review-bg); }
+  .count-link.missing { color: var(--c-missing); border-color: var(--c-missing-border); background: var(--c-missing-bg); }
+  .count-link.alert { color: var(--c-alert); border-color: var(--c-alert-border); background: var(--c-alert-bg); }
+  .count-link:hover { filter: brightness(0.96); }
+  .count-zero { color: var(--text-meta); font-size: 12px; }
 
-  .badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 9px; border: 1px solid var(--border); border-radius: 12px; font-size: 11px; }
-  .badge.confirming { background: var(--surface); }
-  .badge.final { background: var(--text); color: var(--bg); border-color: var(--text); }
-  .count-link { border: none; background: none; text-decoration: underline; cursor: pointer; font-size: 13px; color: var(--text); padding: 0; }
-  .count-link:hover { color: var(--text-secondary); }
-
-  .empty-state { border: 1px dashed var(--border); border-radius: var(--radius); padding: 56px 24px; text-align: center; color: var(--text-secondary); }
-  .empty-illust { margin: 0 auto 16px; display: block; }
-  .empty-state .btn { margin-top: 16px; }
+  .empty-state {
+    background: var(--surface); border: 1px dashed var(--border-strong); border-radius: var(--radius);
+    padding: 64px 24px; text-align: center;
+  }
+  .empty-illust { margin: 0 auto 18px; display: block; }
+  .empty-title { font-size: 15px; font-weight: 700; margin-bottom: 18px; }
+  .empty-state .btn { margin: 0 auto; }
 
   /* ---------- SCR-02 / SCR-05 アップロード ---------- */
-  .format-chips { display: flex; gap: 8px; margin-bottom: 18px; }
-  .chip { font-size: 12px; border: 1px solid var(--border); border-radius: 12px; padding: 3px 10px; color: var(--text-secondary); }
+  .upload-shell { max-width: 720px; }
+  .format-chips { display: flex; gap: 6px; margin-bottom: 14px; }
+  .chip { font-size: 11.5px; border: 1px solid var(--border-strong); border-radius: 12px; padding: 4px 11px; color: var(--text-secondary); background: var(--surface); font-weight: 500; display: inline-flex; align-items: center; gap: 5px; }
+
   .dropzone {
-    border: 2px dashed var(--border-strong); border-radius: var(--radius);
-    padding: 56px 24px; text-align: center; margin-bottom: 18px;
-    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    border: 2px dashed var(--border-strong); border-radius: var(--radius-lg);
+    padding: 52px 24px; text-align: center; margin-bottom: 16px;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    background: var(--surface); transition: background .15s, border-color .15s;
+    cursor: pointer;
   }
-  .dropzone.dragover { background: var(--surface); border-color: var(--text); }
-  .dropzone .main-text { font-size: 15px; font-weight: bold; }
-  .dropzone .sub-text { font-size: 12px; color: var(--text-secondary); }
+  .dropzone:hover { background: #fafbfb; }
+  .dropzone.dragover { background: #eef0f1; border-color: #17181a; border-style: solid; }
+  .dropzone .dz-icon {
+    width: 56px; height: 56px; border-radius: 50%; background: var(--surface-2);
+    display: flex; align-items: center; justify-content: center; margin-bottom: 6px;
+  }
+  .dropzone .main-text { font-size: 15px; font-weight: 700; }
+  .dropzone .sub-text { font-size: 12px; color: var(--text-meta); margin-bottom: 4px; }
 
   .filelist { list-style: none; padding: 0; margin: 0 0 16px; font-size: 13px; }
-  .filelist li { display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border); border-radius: var(--radius); padding: 9px 12px; margin-bottom: 6px; }
-  .filelist .remove { color: var(--text-secondary); cursor: pointer; font-size: 12px; }
-  .inline-error { color: #444; font-size: 12px; border: 1px solid var(--border-strong); padding: 8px 12px; border-radius: var(--radius); margin-bottom: 12px; display:flex; gap:6px; }
+  .filelist li { display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border); background: var(--surface); border-radius: var(--radius-sm); padding: 9px 12px; margin-bottom: 6px; }
+  .filelist .fname { display: flex; align-items: center; gap: 8px; }
+  .filelist .remove { color: var(--text-meta); cursor: pointer; font-size: 12px; padding: 3px 6px; border-radius: 4px; }
+  .filelist .remove:hover { background: var(--surface-2); color: var(--c-alert); }
+  .inline-error {
+    color: var(--c-alert); font-size: 12.5px; background: var(--c-alert-bg); border: 1px solid var(--c-alert-border);
+    padding: 9px 12px; border-radius: var(--radius-sm); margin-bottom: 12px; display: flex; gap: 7px; align-items: center;
+  }
 
-  .upload-action-row { display: flex; align-items: center; gap: 16px; }
-  .progress-wrap { flex: 1; }
-  .progress { border: 1px solid var(--border); border-radius: var(--radius); height: 8px; overflow: hidden; margin-bottom: 4px; }
-  .progress-bar { background: var(--text); height: 100%; width: 62%; }
-  .loading-note { font-size: 12px; color: var(--text-secondary); }
+  .upload-action-row { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+  .progress-wrap { flex: 1; min-width: 220px; }
+  .progress { border: 1px solid var(--border); border-radius: 20px; height: 8px; overflow: hidden; margin-bottom: 6px; background: var(--surface-2); }
+  .progress-bar { background: linear-gradient(90deg,#3a3d41,#101113); height: 100%; width: 62%; border-radius: 20px; }
+  .loading-note { font-size: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; }
+  .spin { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--border-strong); border-top-color: #17181a; animation: spin 0.8s linear infinite; flex-shrink: 0; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .step-track { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-meta); margin-top: 8px; }
+  .step-track .step { display: flex; align-items: center; gap: 4px; }
+  .step-track .step.done { color: var(--c-success); font-weight: 600; }
+  .step-track .step.current { color: var(--text); font-weight: 700; }
+  .step-track .sep { color: var(--border-strong); }
 
-  /* ---------- SCR-03 詳細 ---------- */
-  .legend { display: flex; gap: 16px; font-size: 12px; color: var(--text-secondary); margin: 4px 0 18px; flex-wrap: wrap; }
-  .legend-item { display: flex; align-items: center; gap: 5px; }
-  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; border: 1px solid var(--border-strong); }
-  .dot.ok { background: var(--bg); }
-  .dot.missing { background: var(--surface); border-style: dashed; }
-  .dot.review { background: var(--surface-2); border-width: 2px; }
-  .dot.web { background: var(--bg); border-style: dotted; border-width: 2px; }
+  /* ---------- SCR-03 詳細（左：本体 / 右：Inspector） ---------- */
+  .detail-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 14px; flex-wrap: wrap; }
+  .detail-meta { color: var(--text-secondary); font-size: 12.5px; margin-top: 2px; }
 
-  table.summary { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 8px; }
-  table.summary td { padding: 8px 10px; border-bottom: 1px solid var(--surface-2); vertical-align: top; }
-  table.summary td.label { width: 180px; color: var(--text-meta); font-size: 12px; }
-  table.summary tr.clickable { cursor: pointer; }
-  table.summary tr.clickable:hover td { background: var(--surface); }
-  .val-missing { color: var(--text-secondary); font-style: italic; }
-  .val-review { font-weight: bold; border-bottom: 2px dashed var(--border-strong); display:inline-block; }
-  .val-web { border-bottom: 2px dotted var(--border-strong); display:inline-block; }
-  .tag { font-size: 10px; border: 1px solid var(--border); border-radius: 8px; padding: 0 6px; margin-left: 6px; color: var(--text-meta); }
+  .legend { display: flex; gap: 14px; font-size: 12px; color: var(--text-secondary); margin: 4px 0 18px; flex-wrap: wrap; align-items: center; }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-item .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .legend-item .dot.ok { background: var(--border-strong); }
+  .legend-item .dot.missing { background: var(--c-missing); }
+  .legend-item .dot.review { background: var(--c-review); }
+  .legend-item .dot.alert { background: var(--c-alert); }
+  .legend-item .dot.web { background: var(--c-web); }
 
-  table.itemlist { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 4px; }
-  table.itemlist th, table.itemlist td { border-bottom: 1px solid var(--surface-2); padding: 8px; text-align: left; }
-  table.itemlist th { color: var(--text-meta); font-weight: normal; font-size: 12px; }
-  table.itemlist tbody tr:hover td { background: var(--surface); }
+  .detail-layout { display: flex; align-items: flex-start; gap: 0; }
+  .detail-main { flex: 1 1 auto; min-width: 0; }
+
+  .detail-divider {
+    width: 10px; flex-shrink: 0; cursor: col-resize; align-self: stretch;
+    display: flex; align-items: center; justify-content: center; position: relative;
+  }
+  .detail-divider::after { content: ""; width: 3px; height: 40px; border-radius: 2px; background: var(--border-strong); }
+  .detail-divider:hover::after, .detail-divider.dragging::after { background: #8a9096; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-1); overflow: hidden; }
+
+  table.summary { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.summary td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  table.summary tr:last-child td { border-bottom: none; }
+  table.summary td.label { width: 190px; color: var(--text-meta); font-size: 12px; font-weight: 500; }
+  table.summary tr.clickable { cursor: pointer; transition: background .1s; }
+  table.summary tr.clickable:hover td { background: #f7f8f8; }
+  table.summary tr.selected td { background: var(--surface-2); }
+  .val-cell { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .val-missing { color: var(--c-missing); }
+  .val-web-note { color: var(--text); border-bottom: 2px dotted var(--c-web); }
+
+  table.itemlist { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.itemlist th, table.itemlist td { border-bottom: 1px solid var(--border); padding: 10px; text-align: left; }
+  table.itemlist th { color: var(--text-meta); font-weight: 600; font-size: 11.5px; background: var(--surface-2); text-transform: uppercase; letter-spacing: .02em; }
+  table.itemlist tbody tr:last-child td { border-bottom: none; }
+  table.itemlist tbody tr:hover td { background: #f7f8f8; }
   table.itemlist td.clickable { cursor: pointer; }
 
   .note-tabs { display: flex; gap: 6px; margin-bottom: 10px; }
-  .note-tabs button { padding: 6px 14px; border: 1px solid var(--border); background: var(--bg); border-radius: 16px; font-size: 12px; cursor: pointer; }
-  .note-tabs button.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .note-tabs button { padding: 6px 14px; border: 1px solid var(--border-strong); background: var(--surface); border-radius: 16px; font-size: 12px; cursor: pointer; color: var(--text-secondary); font-weight: 500; }
+  .note-tabs button.active { background: #17181a; color: #fff; border-color: #17181a; }
   .note-list { list-style: none; padding: 0; margin: 0; font-size: 13px; }
-  .note-list li { border: 1px solid var(--border); border-radius: var(--radius); padding: 9px 12px; margin-bottom: 6px; display: flex; justify-content: space-between; gap: 12px; }
+  .note-list li { border: 1px solid var(--border); background: var(--surface); border-radius: var(--radius-sm); padding: 10px 12px; margin-bottom: 6px; display: flex; justify-content: space-between; gap: 12px; }
   .note-list .note-source { font-size: 11px; color: var(--text-meta); white-space: nowrap; }
 
-  .action-bar { display: flex; gap: 8px; margin-top: 24px; border-top: 1px solid var(--border); padding-top: 16px; flex-wrap: wrap; }
-  .warning-banner { border: 1px solid var(--border-strong); background: var(--surface); padding: 10px 14px; border-radius: var(--radius); font-size: 13px; margin: 16px 0; }
-
-  /* ---------- SCR-04 出典ドロワー ---------- */
-  .drawer-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.25); display: none; z-index: 400; }
-  .drawer-overlay.active { display: block; }
-  .drawer {
-    position: absolute; top: 0; right: 0; height: 100%; width: 460px; max-width: 92vw;
-    background: var(--bg); border-left: 1px solid var(--border); padding: 20px; overflow-y: auto;
+  .action-bar { display: flex; gap: 8px; margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border); flex-wrap: wrap; align-items: center; }
+  .export-group { display: flex; align-items: center; gap: 0; margin-left: auto; }
+  .format-select { display: flex; border: 1px solid var(--border-strong); border-radius: var(--radius-sm) 0 0 var(--radius-sm); overflow: hidden; border-right: none; }
+  .format-opt { font-size: 12px; padding: 9px 12px; background: var(--surface); border: none; border-right: 1px solid var(--border-strong); cursor: pointer; color: var(--text-secondary); font-weight: 600; }
+  .format-opt:last-child { border-right: none; }
+  .format-opt.active { background: var(--surface-2); color: var(--text); }
+  .format-opt.disabled { color: var(--text-meta); cursor: not-allowed; background: var(--surface); }
+  .export-download { border-radius: 0 var(--radius-sm) var(--radius-sm) 0 !important; }
+  .warning-banner {
+    border: 1px solid var(--c-review-border); background: var(--c-review-bg); color: #7a5a10;
+    padding: 11px 14px; border-radius: var(--radius-sm); font-size: 13px; margin: 18px 0; display: flex; gap: 8px; align-items: center;
   }
-  .drawer-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; }
-  .drawer-header .close { cursor: pointer; font-size: 18px; color: var(--text-secondary); }
-  .drawer-reason { font-size: 12px; color: var(--text-secondary); margin-bottom: 16px; }
 
-  .source-tabs { display: flex; gap: 6px; margin-bottom: 10px; }
-  .source-tabs button { font-size: 11px; padding: 4px 10px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg); cursor: pointer; }
-  .source-tabs button.active { background: var(--surface-2); font-weight: bold; }
-
-  .preview-box {
-    border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface);
-    padding: 16px; margin-bottom: 12px; min-height: 220px; display: flex; flex-direction: column; gap: 10px;
+  /* ---------- Inspector（右側 常設パネル） ---------- */
+  .inspector-panel {
+    width: 420px; flex-shrink: 0; align-self: stretch;
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    box-shadow: var(--shadow-1); display: flex; flex-direction: column; min-height: 520px; max-height: calc(100vh - 140px);
+    position: sticky; top: 82px;
   }
-  .preview-page {
-    background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: 14px;
-    font-size: 12px; line-height: 1.7; flex: 1;
+  .inspector-empty {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 40px 28px; color: var(--text-meta); gap: 10px;
   }
-  .preview-page mark { background: var(--surface-2); border-bottom: 2px solid var(--border-strong); padding: 0 2px; }
-  .preview-pager { display: flex; justify-content: center; align-items: center; gap: 10px; font-size: 12px; color: var(--text-secondary); }
-  .preview-pager button { border: 1px solid var(--border); background: var(--bg); border-radius: 4px; padding: 2px 8px; cursor: pointer; }
-  .preview-meta { font-size: 11px; color: var(--text-meta); }
+  .inspector-empty svg { opacity: .55; }
+  .inspector-empty .t1 { font-size: 13px; font-weight: 700; color: var(--text-secondary); }
+  .inspector-empty .t2 { font-size: 12px; line-height: 1.6; }
 
-  .candidate { border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; margin-bottom: 8px; cursor: pointer; font-size: 13px; }
-  .candidate:hover { background: var(--surface); border-color: var(--border-strong); }
-  .candidate.selected { border-color: var(--border-strong); border-width: 2px; }
+  .inspector-body { display: none; flex-direction: column; flex: 1; min-height: 0; }
+  .inspector-body.active { display: flex; }
+  .inspector-head { padding: 16px 18px 12px; border-bottom: 1px solid var(--border); }
+  .inspector-eyebrow { font-size: 11px; color: var(--text-meta); text-transform: uppercase; letter-spacing: .04em; font-weight: 700; margin-bottom: 6px; }
+  .inspector-title-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+  .inspector-title { font-size: 16px; font-weight: 700; }
+  .inspector-reason { font-size: 12.5px; color: var(--text-secondary); line-height: 1.6; }
 
-  .drawer label.small { font-size: 11px; color: var(--text-secondary); display: block; margin: 12px 0 4px; }
-  .drawer input[type=text] { width: 100%; padding: 9px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; }
-  .drawer-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+  .inspector-scroll { flex: 1; overflow-y: auto; padding: 16px 18px 8px; }
+  .inspector-section-label { font-size: 11px; color: var(--text-meta); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; margin: 0 0 8px; }
 
-  .caption { font-size: 12px; color: var(--text-meta); margin-top: 20px; }
+  .candidate {
+    border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 10px 12px; margin-bottom: 8px;
+    cursor: pointer; font-size: 13px; background: var(--surface); transition: border-color .1s, background .1s;
+  }
+  .candidate:hover { background: #f7f8f8; }
+  .candidate.selected { border-color: #17181a; border-width: 1.5px; background: var(--surface-2); }
+  .candidate .cval { font-weight: 700; margin-bottom: 3px; }
+  .candidate .csrc { font-size: 11px; color: var(--text-meta); display: flex; align-items: center; gap: 5px; }
+  .src-icon { width: 13px; height: 13px; flex-shrink: 0; }
+  .src-icon svg { width: 100%; height: 100%; stroke: currentColor; }
+
+  .no-candidate { font-size: 12.5px; color: var(--text-meta); border: 1px dashed var(--border-strong); border-radius: var(--radius-sm); padding: 16px; text-align: center; margin-bottom: 12px; }
+
+  .preview-box { border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-2); padding: 14px; margin: 4px 0 16px; }
+  .preview-doc { font-size: 11.5px; color: var(--text-meta); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; font-weight: 600; }
+  .preview-tags { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+  .preview-tag { font-size: 10.5px; border: 1px solid var(--border-strong); background: var(--surface); border-radius: 8px; padding: 1px 7px; color: var(--text-secondary); font-weight: 600; }
+  .preview-text { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 12px; font-size: 12.5px; line-height: 1.8; white-space: pre-wrap; }
+  .preview-text mark { background: #fbe7a8; border-radius: 2px; padding: 0 2px; }
+  .preview-pager { display: flex; justify-content: center; align-items: center; gap: 10px; font-size: 12px; color: var(--text-secondary); margin-top: 8px; }
+  .preview-pager button { border: 1px solid var(--border-strong); background: var(--surface); border-radius: 4px; padding: 2px 9px; cursor: pointer; }
+  .preview-grid { display: flex; gap: 1px; background: var(--border-strong); border: 1px solid var(--border-strong); border-radius: 4px; overflow: hidden; margin-top: 8px; }
+  .preview-grid .g-cell { flex: 1; background: var(--surface); padding: 8px 6px; font-size: 12px; text-align: center; color: var(--text-meta); }
+  .preview-grid .g-cell.target { background: #fbe7a8; color: var(--text); font-weight: 700; }
+  .preview-grid .g-cell .g-addr { font-size: 9.5px; color: var(--text-meta); display: block; margin-bottom: 3px; }
+
+  .inspector-confirm { padding: 12px 18px 16px; border-top: 1px solid var(--border); }
+  .inspector-confirm label { font-size: 11px; color: var(--text-meta); font-weight: 700; text-transform: uppercase; letter-spacing: .03em; display: block; margin-bottom: 6px; }
+  .inspector-confirm input[type=text] { width: 100%; padding: 10px 11px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); font-size: 13.5px; margin-bottom: 10px; }
+  .inspector-confirm input[type=text]:focus { outline: none; border-color: #17181a; box-shadow: 0 0 0 3px rgba(20,22,24,0.08); }
+  .inspector-footer { display: flex; gap: 8px; }
+  .inspector-footer .btn { flex: 1; justify-content: center; }
+  .confirmed-flash { font-size: 11.5px; color: var(--c-success); font-weight: 700; display: none; align-items: center; gap: 5px; margin-bottom: 8px; }
+  .confirmed-flash.show { display: flex; }
+
+  .caption { font-size: 12px; color: var(--text-meta); margin-top: 22px; }
 
   /* ---------- 補助導線: 全画面共通のヘルプアイコン ---------- */
   #help-fab {
-    position: fixed; bottom: 20px; right: 20px; z-index: 300;
-    width: 40px; height: 40px; border-radius: 50%;
-    background: var(--text); color: var(--bg); border: none;
-    font-size: 16px; font-weight: bold; cursor: pointer;
+    position: fixed; bottom: 22px; right: 22px; z-index: 300;
+    width: 42px; height: 42px; border-radius: 50%;
+    background: #17181a; color: #fff; border: none;
+    font-size: 16px; font-weight: 700; cursor: pointer;
     display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+    box-shadow: var(--shadow-2);
+    transition: transform .12s, background .12s;
   }
-  #help-fab:hover { background: var(--text-secondary); }
+  #help-fab:hover { background: #2a2c2f; transform: translateY(-1px); }
+
+  /* ---------- 簡易モーダル（削除確認・確定確認・ログアウト確認 等の限定用途） ---------- */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(10,10,11,0.45); display: none; align-items: center; justify-content: center; z-index: 800; }
+  .modal-overlay.active { display: flex; }
+  .modal-box { width: 340px; background: var(--surface); border-radius: var(--radius); padding: 22px; box-shadow: var(--shadow-2); }
+  .modal-title { font-size: 14.5px; font-weight: 700; margin-bottom: 8px; }
+  .modal-body { font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 18px; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
 </style>
 </head>
 <body>
@@ -253,21 +438,27 @@
   <button onclick="devgo('SCR-02')">アップロード</button>
   <button onclick="devgo('SCR-03')">詳細</button>
   <button onclick="devgo('SCR-05')">資料追加</button>
-  <button onclick="openDrawer('エンジ会社')">根拠パネル</button>
+  <button onclick="devgo('SCR-03'); openInspector('engCompany')">Inspector</button>
 </div>
 
 <!-- SCR-00 ログイン -->
 <section id="login-screen" class="login-wrap">
   <div class="login-card">
+    <div class="login-mark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5"/><line x1="9" y1="12.5" x2="15" y2="12.5"/><line x1="9" y1="16" x2="13" y2="16"/>
+      </svg>
+    </div>
     <div class="login-logo">引合書整理エージェント</div>
     <div class="login-sub">営業担当者ログイン</div>
+    <div class="login-error" id="loginError">メールアドレスまたはパスワードが正しくありません</div>
     <div class="field-row">
       <label>メールアドレス</label>
-      <input type="text" placeholder="you@company.co.jp" value="sales@toseki-steel.co.jp">
+      <input type="text" id="loginEmail" placeholder="you@company.co.jp" value="sales@toseki-steel.co.jp">
     </div>
     <div class="field-row">
       <label>パスワード</label>
-      <input type="password" placeholder="••••••••" value="••••••••">
+      <input type="password" id="loginPass" placeholder="••••••••" value="password">
     </div>
     <button class="btn login-btn" onclick="login()">ログイン</button>
   </div>
@@ -277,19 +468,59 @@
 <div id="shell">
   <aside class="sidebar">
     <div class="sidebar-top">
-      <div class="sidebar-brand">引合書整理エージェント</div>
-      <div class="sidebar-group-label">主要機能</div>
-      <ul class="sidebar-nav">
-        <li><button class="nav-item active" data-target="SCR-01" data-filter="all" onclick="navClick(this)">📋 引合一覧</button></li>
-        <li><button class="nav-item" data-target="SCR-02" onclick="navClick(this)">＋ 新規アップロード</button></li>
-        <li><button class="nav-item" data-target="SCR-01" data-filter="confirming" onclick="navClick(this)">確認中 <span class="sidebar-count">2</span></button></li>
-        <li><button class="nav-item" data-target="SCR-01" data-filter="final" onclick="navClick(this)">確定済み <span class="sidebar-count">1</span></button></li>
-      </ul>
+      <div class="sidebar-brand">
+        <div class="brand-mark">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5"/><line x1="9" y1="12.5" x2="15" y2="12.5"/><line x1="9" y1="16" x2="13" y2="16"/>
+          </svg>
+        </div>
+        <div class="brand-name">引合書整理<br>エージェント</div>
+      </div>
 
-      <div class="sidebar-group-label">今後対応</div>
       <ul class="sidebar-nav">
-        <li><button class="nav-item disabled">設定<span class="soon">今後対応</span></button></li>
-        <li><button class="nav-item disabled">見積書作成・発行<span class="soon">今後対応</span></button></li>
+        <li>
+          <button class="nav-item active" data-target="SCR-01" data-filter="all" onclick="navClick(this)">
+            <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="20" y2="12"/><line x1="8" y1="18" x2="20" y2="18"/><line x1="4" y1="6" x2="4.01" y2="6"/><line x1="4" y1="12" x2="4.01" y2="12"/><line x1="4" y1="18" x2="4.01" y2="18"/></svg></span>
+            引合一覧
+          </button>
+        </li>
+        <li>
+          <button class="nav-item" data-target="SCR-02" onclick="navClick(this)">
+            <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M6 10l6-6 6 6"/><path d="M4 20h16"/></svg></span>
+            新規アップロード
+          </button>
+        </li>
+        <li>
+          <button class="nav-item" data-target="SCR-01" data-filter="confirming" onclick="navClick(this)">
+            <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg></span>
+            確認中
+            <span class="sidebar-count">2</span>
+          </button>
+        </li>
+        <li>
+          <button class="nav-item" data-target="SCR-01" data-filter="final" onclick="navClick(this)">
+            <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M8.5 12l2.5 2.5 5-5"/></svg></span>
+            確定済み
+            <span class="sidebar-count">1</span>
+          </button>
+        </li>
+
+        <div class="sidebar-divider"></div>
+
+        <li>
+          <button class="nav-item disabled" title="今後対応予定の機能です">
+            <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5"/><line x1="9" y1="12.5" x2="15" y2="12.5"/><line x1="9" y1="16" x2="13" y2="16"/></svg></span>
+            見積書発行
+            <span class="soon">今後対応</span>
+          </button>
+        </li>
+        <li>
+          <button class="nav-item disabled" title="今後対応予定の機能です">
+            <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+            設定
+            <span class="soon">今後対応</span>
+          </button>
+        </li>
       </ul>
     </div>
     <div class="sidebar-bottom">
@@ -300,7 +531,10 @@
           <div class="user-email">sales@toseki-steel.co.jp</div>
         </div>
       </div>
-      <button class="logout-btn" onclick="logout()">ログアウト</button>
+      <button class="logout-btn" onclick="requestLogout()">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></span>
+        ログアウト
+      </button>
     </div>
   </aside>
 
@@ -325,54 +559,59 @@
           <button class="filter-btn" data-filter="final" onclick="filterList(this)">確定済み（1）</button>
         </div>
 
+        <div class="list-card">
         <table class="list">
           <thead>
-            <tr><th>依頼元企業</th><th>案件名</th><th>依頼日時</th><th>状態</th><th>要確認</th><th>不明</th><th>最終更新</th></tr>
+            <tr><th>依頼元企業</th><th>案件名</th><th>依頼日時</th><th>状態</th><th>要確認</th><th>不明</th><th>アラート</th><th>最終更新</th></tr>
           </thead>
           <tbody>
             <tr class="row-item" data-status="confirming" onclick="openDetail(event)">
-              <td>東西石油開発</td><td>北海油田 鋼管更新案件</td><td>2026-09-01</td>
-              <td><span class="badge confirming">確認中</span></td>
-              <td><button class="count-link" onclick="event.stopPropagation(); openDetailFilter('review')">3件</button></td>
-              <td><button class="count-link" onclick="event.stopPropagation(); openDetailFilter('missing')">2件</button></td>
+              <td>東西石油開発</td><td>北海油田 鋼管更新案件</td><td>2026-09-01 10:32</td>
+              <td><span class="badge confirming"><span class="dot"></span>確認中</span></td>
+              <td><button class="count-link review" onclick="event.stopPropagation(); openDetailFilter('review')">1件</button></td>
+              <td><button class="count-link missing" onclick="event.stopPropagation(); openDetailFilter('missing')">2件</button></td>
+              <td><button class="count-link alert" onclick="event.stopPropagation(); openDetailFilter('alert')">2件</button></td>
               <td class="row-arrow">2026-09-10 14:02</td>
             </tr>
             <tr class="row-item" data-status="final" onclick="openDetail(event)">
-              <td>北洋エナジー</td><td>資材所要一覧に基づく引合</td><td>2026-08-28</td>
-              <td><span class="badge final">確定済み</span></td>
-              <td>0件</td><td>0件</td><td class="row-arrow">2026-09-08 09:41</td>
+              <td>北洋エナジー</td><td>資材所要一覧に基づく引合</td><td>2026-08-28 16:10</td>
+              <td><span class="badge final"><span class="dot"></span>確定済み</span></td>
+              <td class="count-zero">0件</td><td class="count-zero">0件</td><td class="count-zero">0件</td>
+              <td class="row-arrow">2026-09-08 09:41</td>
             </tr>
             <tr class="row-item" data-status="confirming" onclick="openDetail(event)">
-              <td>GulfTex Energy</td><td>Email Thread引合</td><td>2026-09-11</td>
-              <td><span class="badge confirming">確認中</span></td>
-              <td><button class="count-link" onclick="event.stopPropagation(); openDetailFilter('review')">5件</button></td>
-              <td><button class="count-link" onclick="event.stopPropagation(); openDetailFilter('missing')">4件</button></td>
+              <td>GulfTex Energy</td><td>Email Thread引合</td><td>2026-09-11 09:05</td>
+              <td><span class="badge confirming"><span class="dot"></span>確認中</span></td>
+              <td><button class="count-link review" onclick="event.stopPropagation(); openDetailFilter('review')">2件</button></td>
+              <td><button class="count-link missing" onclick="event.stopPropagation(); openDetailFilter('missing')">3件</button></td>
+              <td><button class="count-link alert" onclick="event.stopPropagation(); openDetailFilter('alert')">1件</button></td>
               <td class="row-arrow">2026-09-12 18:20</td>
             </tr>
           </tbody>
         </table>
+        </div>
 
-        <p class="caption">（0件時は下記のような改善済み空状態を表示）</p>
+        <p class="caption">（0件時は下記のような空状態を表示）</p>
         <div class="empty-state">
           <svg class="empty-illust" width="88" height="72" viewBox="0 0 88 72" fill="none">
-            <rect x="14" y="10" width="44" height="56" rx="4" stroke="#999" stroke-width="2"/>
-            <line x1="22" y1="24" x2="48" y2="24" stroke="#bbb" stroke-width="2"/>
-            <line x1="22" y1="34" x2="48" y2="34" stroke="#bbb" stroke-width="2"/>
-            <line x1="22" y1="44" x2="40" y2="44" stroke="#bbb" stroke-width="2"/>
-            <circle cx="64" cy="52" r="16" fill="#fff" stroke="#333" stroke-width="2"/>
-            <line x1="64" y1="44" x2="64" y2="52" stroke="#333" stroke-width="2"/>
-            <line x1="64" y1="52" x2="70" y2="52" stroke="#333" stroke-width="2"/>
+            <rect x="14" y="10" width="44" height="56" rx="4" stroke="#c2c7cc" stroke-width="2"/>
+            <line x1="22" y1="24" x2="48" y2="24" stroke="#d7dce1" stroke-width="2"/>
+            <line x1="22" y1="34" x2="48" y2="34" stroke="#d7dce1" stroke-width="2"/>
+            <line x1="22" y1="44" x2="40" y2="44" stroke="#d7dce1" stroke-width="2"/>
+            <circle cx="64" cy="52" r="16" fill="#fff" stroke="#1b1d1f" stroke-width="2"/>
+            <line x1="64" y1="44" x2="64" y2="52" stroke="#1b1d1f" stroke-width="2"/>
+            <line x1="64" y1="52" x2="70" y2="52" stroke="#1b1d1f" stroke-width="2"/>
           </svg>
-          <div><strong>まだ引合がありません</strong></div>
-          <p class="subtitle" style="margin:6px 0 0;">書類をアップロードすると、AIが引合内容を自動整理します。</p>
-          <button class="btn" data-goto="SCR-02">＋ 最初の書類をアップロード</button>
+          <div class="empty-title">まだ引合がありません</div>
+          <button class="btn" data-goto="SCR-02">＋ 書類をアップロード</button>
         </div>
       </section>
 
       <!-- SCR-02 書類アップロード -->
       <section id="SCR-02" class="screen">
+        <div class="upload-shell">
         <h1>書類アップロード</h1>
-        <p class="subtitle">Excel・PDF・メールをアップロードすると、新しい引合が自動的に作成されます。案件名や顧客名の入力は不要です。</p>
+        <p class="subtitle">ファイルを入れるだけで、新しい引合が自動的に作成されます。</p>
 
         <div class="format-chips">
           <span class="chip">📊 Excel（.xlsx）</span>
@@ -381,113 +620,180 @@
         </div>
 
         <div class="dropzone">
-          <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
-            <path d="M20 6v20M12 18l8-8 8 8" stroke="#333" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-            <rect x="6" y="30" width="28" height="4" rx="1" fill="#333"/>
-          </svg>
+          <div class="dz-icon">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+              <path d="M12 16V4M6 10l6-6 6 6" stroke="#1b1d1f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M4 20h16" stroke="#1b1d1f" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
           <div class="main-text">ここにドラッグ＆ドロップ</div>
           <div class="sub-text">または</div>
           <button class="btn secondary">ファイルを選択</button>
         </div>
 
-        <div class="inline-error">⚠️ 「見積書.docx」は対応していない形式です（Excel / PDF / メールのみアップロードできます）</div>
+        <div class="inline-error">⚠️ 「見積書.docx」は対応していません（Excel／PDF／メールのみ）</div>
 
         <ul class="filelist">
-          <li>📊 01_東西石油開発_オーダーリスト.xlsx <span class="remove">✕ 削除</span></li>
-          <li>📄 03_日本海ガス開発_見積依頼書.pdf <span class="remove">✕ 削除</span></li>
-          <li>✉️ 04_南邦石油_引合メール.eml <span class="remove">✕ 削除</span></li>
+          <li><span class="fname">📊 01_東西石油開発_オーダーリスト.xlsx</span><span class="remove">✕ 削除</span></li>
+          <li><span class="fname">📄 03_日本海ガス開発_見積依頼書.pdf</span><span class="remove">✕ 削除</span></li>
+          <li><span class="fname">✉️ 04_南邦石油_引合メール.eml</span><span class="remove">✕ 削除</span></li>
         </ul>
 
         <div class="upload-action-row">
           <button class="btn" data-goto="SCR-03">アップロード開始</button>
           <div class="progress-wrap">
             <div class="progress"><div class="progress-bar"></div></div>
-            <div class="loading-note">AIが資料を解析しています…（案件情報・品目情報を抽出中）</div>
+            <div class="loading-note"><span class="spin"></span>AIが解析中…</div>
+            <div class="step-track">
+              <span class="step done">✓ アップロード</span><span class="sep">›</span>
+              <span class="step current">● 解析中</span><span class="sep">›</span>
+              <span class="step">完了</span>
+            </div>
           </div>
+        </div>
         </div>
       </section>
 
       <!-- SCR-03 引合詳細 -->
       <section id="SCR-03" class="screen">
-        <div class="toolbar">
+        <div class="detail-header">
           <div>
             <h1>東西石油開発 - 北海油田 鋼管更新案件</h1>
-            <p class="subtitle" style="margin-bottom:0;">引合ID: INQ-2026-0091　依頼日時: 2026-09-01</p>
+            <div class="detail-meta">引合ID: INQ-2026-0091　依頼日時: 2026-09-01 10:32</div>
           </div>
-          <div style="display:flex; gap:8px;">
-            <span class="badge confirming" style="align-self:center;">確認中</span>
-          </div>
+          <span class="badge confirming"><span class="dot"></span>確認中</span>
         </div>
 
         <div class="legend">
           <span class="legend-item"><span class="dot ok"></span>確認不要</span>
-          <span class="legend-item"><span class="dot missing"></span>？ 不明</span>
-          <span class="legend-item"><span class="dot review"></span>⚠️ 要確認</span>
-          <span class="legend-item"><span class="dot web"></span>🌐 Web補完</span>
+          <span class="legend-item"><span class="dot missing"></span>不明</span>
+          <span class="legend-item"><span class="dot review"></span>要確認</span>
+          <span class="legend-item"><span class="dot alert"></span>アラート</span>
+          <span class="legend-item"><span class="dot web"></span>Web補完</span>
         </div>
 
-        <h2>案件サマリー</h2>
-        <table class="summary">
-          <tr class="clickable" onclick="openDrawer('依頼元企業')"><td class="label">依頼元企業</td><td>東西石油開発株式会社</td></tr>
-          <tr class="clickable" onclick="openDrawer('案件名')"><td class="label">案件名／プロジェクト名</td><td>北海油田 鋼管更新案件</td></tr>
-          <tr class="clickable" onclick="openDrawer('引合日')"><td class="label">引合日</td><td>2026-09-01</td></tr>
-          <tr class="clickable" onclick="openDrawer('回答期限')"><td class="label">回答期限／見積期限</td><td><span class="val-missing">？ 不明</span></td></tr>
-          <tr class="clickable" onclick="openDrawer('発注国')"><td class="label">発注国／納入先国</td><td>ノルウェー</td></tr>
-          <tr class="clickable" onclick="openDrawer('用途')"><td class="label">用途</td><td>海底パイプライン更新</td></tr>
-          <tr class="clickable" onclick="openDrawer('背景')"><td class="label">案件背景／概要</td><td>既設油田の設備更新に伴う鋼管一括更新</td></tr>
-          <tr class="clickable" onclick="openDrawer('発注者')"><td class="label">発注者／End User</td><td>東西石油開発株式会社</td></tr>
-          <tr class="clickable" onclick="openDrawer('エンジ会社')"><td class="label">エンジ会社</td><td><span class="val-review">⚠️ 要確認</span><span class="tag">候補2件</span></td></tr>
-          <tr class="clickable" onclick="openDrawer('EPC')"><td class="label">EPC</td><td><span class="val-review">⚠️ 要確認</span><span class="tag">候補2件</span></td></tr>
-          <tr class="clickable" onclick="openDrawer('希望納期')"><td class="label">希望納期</td><td>2027-03</td></tr>
-          <tr class="clickable" onclick="openDrawer('数量感')"><td class="label">数量感／案件規模</td><td>約1,200本</td></tr>
-          <tr class="clickable" onclick="openDrawer('類似案件')"><td class="label">類似案件</td><td><span class="val-missing">？ 不明</span></td></tr>
-          <tr class="clickable" onclick="openDrawer('市況')"><td class="label">市況</td><td><span class="val-web">🌐 北海圏の油田開発は増加傾向</span><span class="tag">Web補完</span></td></tr>
-        </table>
+        <div class="detail-layout">
+          <div class="detail-main">
 
-        <h2>品目一覧</h2>
-        <table class="itemlist">
-          <thead>
-            <tr><th>#</th><th>製管方法</th><th>用途</th><th>グレード</th><th>ネジ種</th><th>外径</th><th>肉厚</th><th>長さ</th><th>数量</th></tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>1</td><td>シームレス</td><td>ケーシング</td>
-              <td class="clickable" onclick="openDrawer('グレード（品目1）')"><span class="val-review">⚠️ 要確認</span></td>
-              <td>API規格</td><td>244.5mm</td><td>13.8mm</td><td>12m</td>
-              <td class="clickable" onclick="openDrawer('数量（品目1）')"><span class="val-review">⚠️ 要確認</span></td>
-            </tr>
-            <tr>
-              <td>2</td><td>溶接</td><td>チュービング</td><td>L80</td><td>Premium</td><td>73mm</td><td>7.0mm</td><td>9.5m</td><td>320本</td>
-            </tr>
-          </tbody>
-        </table>
+            <div class="card">
+              <h2 style="margin:0; padding:14px 14px 0;">案件サマリー</h2>
+              <table class="summary" style="margin-top:8px;">
+                <tr class="clickable" id="row-requester" onclick="openInspector('requester')"><td class="label">依頼元企業</td><td><span class="val-cell" id="cell-requester">東西石油開発株式会社</span></td></tr>
+                <tr class="clickable" id="row-projectName" onclick="openInspector('projectName')"><td class="label">案件名／プロジェクト名</td><td><span class="val-cell" id="cell-projectName">北海油田 鋼管更新案件</span></td></tr>
+                <tr class="clickable" id="row-inquiryDate" onclick="openInspector('inquiryDate')"><td class="label">引合日</td><td><span class="val-cell" id="cell-inquiryDate">2026-09-01</span></td></tr>
+                <tr class="clickable" id="row-dueDate" onclick="openInspector('dueDate')"><td class="label">回答期限／見積期限</td><td><span class="val-cell" id="cell-dueDate"><span class="badge missing">不明</span></span></td></tr>
+                <tr class="clickable" id="row-country" onclick="openInspector('country')"><td class="label">発注国／納入先国</td><td><span class="val-cell" id="cell-country">ノルウェー</span></td></tr>
+                <tr class="clickable" id="row-purpose" onclick="openInspector('purpose')"><td class="label">用途</td><td><span class="val-cell" id="cell-purpose">海底パイプライン更新</span></td></tr>
+                <tr class="clickable" id="row-background" onclick="openInspector('background')"><td class="label">案件背景／概要</td><td><span class="val-cell" id="cell-background">既設油田の設備更新に伴う鋼管一括更新</span></td></tr>
+                <tr class="clickable" id="row-orderer" onclick="openInspector('orderer')"><td class="label">発注者／End User</td><td><span class="val-cell" id="cell-orderer">東西石油開発株式会社</span></td></tr>
+                <tr class="clickable" id="row-engCompany" onclick="openInspector('engCompany')"><td class="label">エンジ会社</td><td><span class="val-cell" id="cell-engCompany"><span class="badge review">要確認</span><span style="color:var(--text-meta); font-size:12px;">候補2件</span></span></td></tr>
+                <tr class="clickable" id="row-epc" onclick="openInspector('epc')"><td class="label">EPC</td><td><span class="val-cell" id="cell-epc"><span class="badge review">要確認</span><span style="color:var(--text-meta); font-size:12px;">候補2件</span></span></td></tr>
+                <tr class="clickable" id="row-desiredDelivery" onclick="openInspector('desiredDelivery')"><td class="label">希望納期</td><td><span class="val-cell" id="cell-desiredDelivery"><span class="badge alert">アラート</span><span style="color:var(--text-meta); font-size:12px;">資料間で矛盾</span></span></td></tr>
+                <tr class="clickable" id="row-quantityScale" onclick="openInspector('quantityScale')"><td class="label">数量感／案件規模</td><td><span class="val-cell" id="cell-quantityScale">約1,200本</span></td></tr>
+                <tr class="clickable" id="row-similarCase" onclick="openInspector('similarCase')"><td class="label">類似案件</td><td><span class="val-cell" id="cell-similarCase"><span class="badge missing">不明</span></span></td></tr>
+                <tr class="clickable" id="row-marketCondition" onclick="openInspector('marketCondition')"><td class="label">市況</td><td><span class="val-cell" id="cell-marketCondition"><span class="val-web-note">北海圏の油田開発は増加傾向</span><span class="badge web">Web補完</span></span></td></tr>
+              </table>
+            </div>
 
-        <h2>その他特記事項</h2>
-        <div class="note-tabs">
-          <button class="active" onclick="switchNoteTab(this,'case')">案件全体</button>
-          <button onclick="switchNoteTab(this,'item')">品目固有</button>
-        </div>
-        <ul class="note-list" id="note-case">
-          <li><span>Mill Certificate提出必須</span><span class="note-source">03_見積依頼書.pdf p.2</span></li>
-          <li><span>第三者検査あり</span><span class="note-source">04_引合メール.eml 本文</span></li>
-        </ul>
-        <ul class="note-list" id="note-item" style="display:none;">
-          <li><span>品目1: 特殊コーティング指定</span><span class="note-source">01_オーダーリスト.xlsx シート2 C15</span></li>
-        </ul>
+            <h2>品目一覧</h2>
+            <div class="card">
+            <table class="itemlist">
+              <thead>
+                <tr><th>#</th><th>製管方法</th><th>用途</th><th>グレード</th><th>ネジ種</th><th>外径</th><th>肉厚</th><th>長さ</th><th>数量</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>1</td><td>シームレス</td><td>ケーシング</td>
+                  <td class="clickable" id="row-item1Grade" onclick="openInspector('item1Grade')"><span id="cell-item1Grade"><span class="badge review">要確認</span></span></td>
+                  <td>API規格</td><td>244.5mm</td><td>13.8mm</td><td>12m</td>
+                  <td class="clickable" id="row-item1Qty" onclick="openInspector('item1Qty')"><span id="cell-item1Qty"><span class="badge alert">アラート</span></span></td>
+                </tr>
+                <tr>
+                  <td>2</td><td>溶接</td><td>チュービング</td><td>L80</td><td>Premium</td><td>73mm</td><td>7.0mm</td><td>9.5m</td><td>320本</td>
+                </tr>
+              </tbody>
+            </table>
+            </div>
 
-        <div class="warning-banner">確定済みの内容を変更しました。再度Excelを出力してください。（確定後に再編集した場合の注意表示）</div>
+            <h2>その他特記事項</h2>
+            <div class="note-tabs">
+              <button class="active" onclick="switchNoteTab(this,'case')">案件全体</button>
+              <button onclick="switchNoteTab(this,'item')">品目固有</button>
+            </div>
+            <ul class="note-list" id="note-case">
+              <li><span>Mill Certificate提出必須</span><span class="note-source">03_見積依頼書.pdf p.2</span></li>
+              <li><span>第三者検査あり</span><span class="note-source">04_引合メール.eml 本文</span></li>
+            </ul>
+            <ul class="note-list" id="note-item" style="display:none;">
+              <li><span>品目1: 特殊コーティング指定</span><span class="note-source">01_オーダーリスト.xlsx シート2 C15</span></li>
+            </ul>
 
-        <div class="action-bar">
-          <button class="btn secondary" data-goto="SCR-05">📎 資料を追加</button>
-          <button class="btn secondary">⬇ Excelをダウンロード（_draft）</button>
-          <button class="btn">✔ 確定する</button>
+            <div class="warning-banner">⚠️ 確定済みの内容を変更しました。再度出力してください。</div>
+
+            <div class="action-bar">
+              <button class="btn secondary" data-goto="SCR-05">📎 資料を追加</button>
+              <div class="export-group">
+                <div class="format-select">
+                  <button class="format-opt active" title="Excel形式で出力">Excel</button>
+                  <button class="format-opt disabled" title="今後対応予定">Word</button>
+                  <button class="format-opt disabled" title="今後対応予定">PDF</button>
+                </div>
+                <button class="btn secondary export-download">⬇ ダウンロード（_draft）</button>
+              </div>
+              <button class="btn" onclick="requestConfirmCase()">✔ 確定する</button>
+            </div>
+          </div>
+
+          <div class="detail-divider" id="detailDivider"></div>
+
+          <!-- SCR-04: 根拠確認 Inspector（常設パネル / Split View） -->
+          <aside class="inspector-panel" id="inspector">
+            <div class="inspector-empty" id="inspectorEmpty">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#8b9198" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 20l-8-4.5v-7L12 4l8 4.5v7z"/><path d="M12 12l8-4.5"/><path d="M12 12v8"/><path d="M12 12L4 7.5"/>
+              </svg>
+              <div class="t1">項目を選択してください</div>
+              <div class="t2">左の表で要確認・不明・アラートの項目を<br>クリックすると、ここに根拠が表示されます</div>
+            </div>
+
+            <div class="inspector-body" id="inspectorBody">
+              <div class="inspector-head">
+                <div class="inspector-eyebrow">根拠確認</div>
+                <div class="inspector-title-row">
+                  <span class="inspector-title" id="inspTitle">エンジ会社</span>
+                  <span class="badge" id="inspStatusBadge">要確認</span>
+                </div>
+                <div class="inspector-reason" id="inspReason">複数の資料で異なる値が記載されています。</div>
+              </div>
+
+              <div class="inspector-scroll">
+                <div class="confirmed-flash" id="confirmedFlash">✓ 確定しました</div>
+
+                <div class="inspector-section-label">候補値（クリックで比較）</div>
+                <div id="candidateList"></div>
+
+                <div class="inspector-section-label" style="margin-top:14px;">出典プレビュー</div>
+                <div class="preview-box" id="previewBox"></div>
+              </div>
+
+              <div class="inspector-confirm">
+                <label>確定する値</label>
+                <input type="text" id="confirmInput" value="">
+                <div class="inspector-footer">
+                  <button class="btn secondary" onclick="closeInspector()">閉じる</button>
+                  <button class="btn" onclick="confirmValue()">この値を確定する</button>
+                </div>
+              </div>
+            </div>
+          </aside>
         </div>
       </section>
 
       <!-- SCR-05 資料追加アップロード -->
       <section id="SCR-05" class="screen">
+        <div class="upload-shell">
         <h1>資料を追加</h1>
-        <p class="subtitle">対象の引合: <strong>東西石油開発 - 北海油田 鋼管更新案件</strong>（引合ID: INQ-2026-0091）</p>
+        <p class="subtitle">対象: <strong>東西石油開発 - 北海油田 鋼管更新案件</strong>（INQ-2026-0091）</p>
 
         <div class="format-chips">
           <span class="chip">📊 Excel（.xlsx）</span>
@@ -496,88 +802,87 @@
         </div>
 
         <div class="dropzone">
-          <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
-            <path d="M20 6v20M12 18l8-8 8 8" stroke="#333" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-            <rect x="6" y="30" width="28" height="4" rx="1" fill="#333"/>
-          </svg>
+          <div class="dz-icon">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+              <path d="M12 16V4M6 10l6-6 6 6" stroke="#1b1d1f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M4 20h16" stroke="#1b1d1f" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
           <div class="main-text">ここに追加資料をドラッグ＆ドロップ</div>
           <div class="sub-text">または</div>
           <button class="btn secondary">ファイルを選択</button>
         </div>
 
         <ul class="filelist">
-          <li>📄 05_大陸資源開発_坑井資材調達仕様書.pdf <span class="remove">✕ 削除</span></li>
+          <li><span class="fname">📄 05_大陸資源開発_坑井資材調達仕様書.pdf</span><span class="remove">✕ 削除</span></li>
         </ul>
 
         <button class="btn" data-goto="SCR-03">追加する</button>
+        </div>
       </section>
 
     </div>
   </div>
 </div>
 
-<!-- SCR-04 出典ドロワー -->
-<div class="drawer-overlay" id="drawer-overlay" onclick="closeDrawerOnOverlay(event)">
-  <div class="drawer" onclick="event.stopPropagation()">
-    <div class="drawer-header">
-      <div>
-        <strong id="drawer-title">エンジ会社</strong>
-        <div class="drawer-reason">理由: 複数資料で異なる値が記載されているため（複数候補）</div>
-      </div>
-      <span class="close" onclick="closeDrawer()">✕</span>
-    </div>
-
-    <div class="source-tabs">
-      <button class="active">候補1（PDF）</button>
-      <button>候補2（EML）</button>
-    </div>
-
-    <div class="preview-box">
-      <div class="preview-page">
-        03_日本海ガス開発_見積依頼書.pdf<br><br>
-        ・・・仕様概要　・・・<br>
-        エンジニアリング会社: <mark>北海エンジニアリング（株）</mark><br>
-        発注者: 東西石油開発株式会社<br>
-        ・・・
-      </div>
-      <div class="preview-pager">
-        <button>‹</button><span>p. 1 / 2</span><button>›</button>
-      </div>
-    </div>
-    <div class="preview-meta">同じ「出典プレビュー」UIを、EML（本文該当箇所）・Excel（シート・セル）・Web（参照元ページ）にも同様に拡張する。</div>
-
-    <label class="small">候補値（クリックで選択）</label>
-    <div class="candidate selected">北海エンジニアリング株式会社　<span class="note-source">出典: PDF p.1</span></div>
-    <div class="candidate">Hokkai Engineering Co., Ltd.　<span class="note-source">出典: EML 本文3段落目</span></div>
-
-    <label class="small">確定する値</label>
-    <input type="text" value="北海エンジニアリング株式会社">
-
-    <div class="drawer-footer">
-      <button class="btn secondary" onclick="closeDrawer()">閉じる</button>
-      <button class="btn" onclick="closeDrawer()">この値を確定する</button>
+<!-- 限定用途モーダル: ログアウト確認 -->
+<div class="modal-overlay" id="logoutModal">
+  <div class="modal-box">
+    <div class="modal-title">ログアウトしますか？</div>
+    <div class="modal-body">未確定の変更は保存されています。ログアウトすると再度ログインが必要です。</div>
+    <div class="modal-actions">
+      <button class="btn secondary" onclick="closeModal('logoutModal')">キャンセル</button>
+      <button class="btn" onclick="logout()">ログアウト</button>
     </div>
   </div>
 </div>
 
-<!-- 補助導線: 全画面共通のヘルプアイコン（将来的に操作方法/FAQ/この画面について/問い合わせをドロワー等で表示予定。現時点はアイコン表示のみ） -->
+<!-- 限定用途モーダル: 確定確認 -->
+<div class="modal-overlay" id="confirmCaseModal">
+  <div class="modal-box">
+    <div class="modal-title">この引合を確定しますか？</div>
+    <div class="modal-body">状態が「確定済み」に変わります。確定後も値の再編集は可能です（再編集時は注意表示が出ます）。</div>
+    <div class="modal-actions">
+      <button class="btn secondary" onclick="closeModal('confirmCaseModal')">キャンセル</button>
+      <button class="btn" onclick="doConfirmCase()">確定する</button>
+    </div>
+  </div>
+</div>
+
+<!-- 補助導線: 全画面共通のヘルプアイコン -->
 <button id="help-fab" title="ヘルプ" aria-label="ヘルプ">?</button>
 
 <script>
+  /* ---------- ログイン／ログアウト ---------- */
   function login() {
+    document.getElementById('loginError').classList.remove('active');
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('shell').classList.add('active');
   }
   function logout() {
+    closeModal('logoutModal');
     document.getElementById('shell').classList.remove('active');
     document.getElementById('login-screen').style.display = 'flex';
   }
+  function requestLogout() { openModal('logoutModal'); }
   function devgo(target) {
-    if (target === 'login') { logout(); return; }
+    if (target === 'login') { document.getElementById('shell').classList.remove('active'); document.getElementById('login-screen').style.display = 'flex'; return; }
     login();
     showScreen(target);
   }
 
+  /* ---------- モーダル（限定用途） ---------- */
+  function openModal(id) { document.getElementById(id).classList.add('active'); }
+  function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+  function requestConfirmCase() { openModal('confirmCaseModal'); }
+  function doConfirmCase() {
+    closeModal('confirmCaseModal');
+    document.querySelectorAll('#SCR-03 .detail-header .badge').forEach(b => {
+      b.className = 'badge final'; b.innerHTML = '<span class="dot"></span>確定済み';
+    });
+  }
+
+  /* ---------- 画面遷移 ---------- */
   const breadcrumbs = {
     'SCR-01': '引合一覧',
     'SCR-02': '引合一覧 › 新規アップロード',
@@ -596,6 +901,7 @@
   document.querySelectorAll('[data-goto]').forEach(b => b.addEventListener('click', () => showScreen(b.dataset.goto)));
 
   function navClick(btn) {
+    if (btn.classList.contains('disabled')) return;
     showScreen(btn.dataset.target);
     if (btn.dataset.target === 'SCR-01') {
       document.querySelectorAll('.sidebar-nav .nav-item[data-target="SCR-01"]').forEach(b => b.classList.toggle('active', b === btn));
@@ -618,7 +924,7 @@
   }
 
   function openDetail(e) { showScreen('SCR-03'); }
-  function openDetailFilter(kind) { showScreen('SCR-03'); /* 実装では kind(review/missing) にスクロール・絞り込み */ }
+  function openDetailFilter(kind) { showScreen('SCR-03'); /* 実装では kind(review/missing/alert) の項目へスクロール・絞り込み */ }
 
   function switchNoteTab(btn, kind) {
     document.querySelectorAll('.note-tabs button').forEach(b => b.classList.remove('active'));
@@ -627,12 +933,201 @@
     document.getElementById('note-item').style.display = kind === 'item' ? '' : 'none';
   }
 
-  function openDrawer(fieldName) {
-    document.getElementById('drawer-title').textContent = fieldName;
-    document.getElementById('drawer-overlay').classList.add('active');
+  /* ---------- ドラッグ&ドロップ（視覚デモ） ---------- */
+  document.querySelectorAll('.dropzone').forEach(dz => {
+    ['dragenter','dragover'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.add('dragover'); }));
+    ['dragleave','drop'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.remove('dragover'); }));
+  });
+
+  /* ---------- Inspector（右側 Split View / SCR-04相当） ---------- */
+  const statusLabel = { ok: '確認不要', missing: '不明', review: '要確認', alert: 'アラート', web: 'Web補完' };
+  const srcIcon = {
+    pdf: '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5"/></svg>',
+    eml: '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>',
+    excel: '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="9" y1="4" x2="9" y2="20"/></svg>',
+    web: '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="3" y1="12" x2="21" y2="12"/><path d="M12 3a15 15 0 0 1 0 18 15 15 0 0 1 0-18z"/></svg>'
+  };
+  const srcTypeLabel = { pdf: 'PDF', eml: 'メール', excel: 'Excel', web: 'Web' };
+
+  const inspectorData = {
+    requester: { label: '依頼元企業', status: 'ok', reason: '', candidates: [
+      { value: '東西石油開発株式会社', source: '03_日本海ガス開発_見積依頼書.pdf p.1', type: 'pdf', page: '1 / 2', text: '発注者: <mark>東西石油開発株式会社</mark>\n案件名: 北海油田 鋼管更新案件' }
+    ]},
+    projectName: { label: '案件名／プロジェクト名', status: 'ok', reason: '', candidates: [
+      { value: '北海油田 鋼管更新案件', source: '03_日本海ガス開発_見積依頼書.pdf p.1', type: 'pdf', page: '1 / 2', text: '件名: <mark>北海油田 鋼管更新案件</mark>のご相談' }
+    ]},
+    inquiryDate: { label: '引合日', status: 'ok', reason: '', candidates: [
+      { value: '2026-09-01', source: '04_南邦石油_引合メール.eml ヘッダー', type: 'eml', subject: '北海油田鋼管更新案件のご相談', text: '送信日時: <mark>2026-09-01</mark> 10:32' }
+    ]},
+    dueDate: { label: '回答期限／見積期限', status: 'missing', reason: 'いずれの資料にも回答期限の記載が見つかりませんでした。', candidates: [] },
+    country: { label: '発注国／納入先国', status: 'ok', reason: '', candidates: [
+      { value: 'ノルウェー', source: '03_日本海ガス開発_見積依頼書.pdf p.1', type: 'pdf', page: '1 / 2', text: '納入先国: <mark>ノルウェー</mark>' }
+    ]},
+    purpose: { label: '用途', status: 'ok', reason: '', candidates: [
+      { value: '海底パイプライン更新', source: '03_日本海ガス開発_見積依頼書.pdf p.1', type: 'pdf', page: '1 / 2', text: '用途: <mark>海底パイプライン更新</mark>用ケーシング・チュービング' }
+    ]},
+    background: { label: '案件背景／概要', status: 'ok', reason: '', candidates: [
+      { value: '既設油田の設備更新に伴う鋼管一括更新', source: '04_南邦石油_引合メール.eml 本文', type: 'eml', subject: '北海油田鋼管更新案件のご相談', text: '…<mark>既設油田の設備更新に伴う鋼管一括更新</mark>を計画しております…' }
+    ]},
+    orderer: { label: '発注者／End User', status: 'ok', reason: '', candidates: [
+      { value: '東西石油開発株式会社', source: '03_日本海ガス開発_見積依頼書.pdf p.1', type: 'pdf', page: '1 / 2', text: '発注者: <mark>東西石油開発株式会社</mark>' }
+    ]},
+    engCompany: { label: 'エンジ会社', status: 'review', reason: '複数の資料で異なる値が記載されています（複数候補）。候補から選択するか、修正して確定してください。', candidates: [
+      { value: '北海エンジニアリング株式会社', source: '03_日本海ガス開発_見積依頼書.pdf p.1', type: 'pdf', page: '1 / 2', text: 'エンジニアリング会社: <mark>北海エンジニアリング（株）</mark>' },
+      { value: 'Hokkai Engineering Co., Ltd.', source: '04_南邦石油_引合メール.eml 本文3段落目', type: 'eml', subject: '北海油田鋼管更新案件のご相談', text: '施工にあたり <mark>Hokkai Engineering Co., Ltd.</mark> 殿がエンジニアリングを担当予定です。' }
+    ]},
+    epc: { label: 'EPC', status: 'review', reason: '複数の資料で異なる値が記載されています（複数候補）。候補から選択するか、修正して確定してください。', candidates: [
+      { value: '北洋プラントエンジニアリング', source: '03_日本海ガス開発_見積依頼書.pdf p.2', type: 'pdf', page: '2 / 2', text: 'EPC: <mark>北洋プラントエンジニアリング</mark>' },
+      { value: '東西エンジニアリング株式会社', source: '01_東西石油開発_オーダーリスト.xlsx シート1 B3', type: 'excel', sheet: 'シート1（案件情報）', cell: 'B3', text: 'B3セル: <mark>東西エンジニアリング株式会社</mark>' }
+    ]},
+    desiredDelivery: { label: '希望納期', status: 'alert', reason: '資料間で異なる値が記載されており、矛盾しています。関係者に確認のうえ確定してください。', candidates: [
+      { value: '2027-03', source: '03_日本海ガス開発_見積依頼書.pdf p.1 納期欄', type: 'pdf', page: '1 / 2', text: '希望納期: <mark>2027年3月</mark>' },
+      { value: '2027-06', source: '04_南邦石油_引合メール.eml 本文', type: 'eml', subject: '北海油田鋼管更新案件のご相談', text: '…できれば<mark>2027年6月</mark>までに納入いただきたく…' }
+    ]},
+    quantityScale: { label: '数量感／案件規模', status: 'ok', reason: '', candidates: [
+      { value: '約1,200本', source: '03_日本海ガス開発_見積依頼書.pdf p.1', type: 'pdf', page: '1 / 2', text: '数量規模: <mark>約1,200本</mark>' }
+    ]},
+    similarCase: { label: '類似案件', status: 'missing', reason: '類似案件に関する記載が見つかりませんでした。', candidates: [] },
+    marketCondition: { label: '市況', status: 'web', reason: '資料内に記載がないため、Web検索により補完しました。', candidates: [
+      { value: '北海圏の油田開発は増加傾向', source: '業界レポート（2026年8月）', type: 'web', text: '北海圏における油田設備更新・新規開発は2026年に入り増加傾向にあります。' }
+    ]},
+    item1Grade: { label: 'グレード（品目1）', status: 'review', reason: '複数の資料で異なる値が記載されています（複数候補）。', candidates: [
+      { value: 'L80', source: '01_東西石油開発_オーダーリスト.xlsx シート2 D5', type: 'excel', sheet: 'シート2（品目一覧）', cell: 'D5', text: 'D5セル: <mark>L80</mark>' },
+      { value: 'C90', source: '03_日本海ガス開発_見積依頼書.pdf p.2 品目表', type: 'pdf', page: '2 / 2', text: 'グレード: <mark>C90</mark>' }
+    ]},
+    item1Qty: { label: '数量（品目1）', status: 'alert', reason: '資料間で数量が異なり、矛盾しています。', candidates: [
+      { value: '200本', source: '01_東西石油開発_オーダーリスト.xlsx シート2 I5', type: 'excel', sheet: 'シート2（品目一覧）', cell: 'I5', text: 'I5セル: <mark>200</mark>' },
+      { value: '180本', source: '04_南邦石油_引合メール.eml 本文', type: 'eml', subject: '北海油田鋼管更新案件のご相談', text: '品目1の数量は<mark>180本</mark>でお願いします。' }
+    ]}
+  };
+
+  let currentInspectorKey = null;
+  let selectedCandidateIndex = 0;
+
+  function openInspector(key) {
+    currentInspectorKey = key;
+    selectedCandidateIndex = 0;
+    document.querySelectorAll('table.summary tr, table.itemlist td.clickable').forEach(el => el.classList.remove('selected'));
+    const row = document.getElementById('row-' + key);
+    if (row) row.classList.add('selected');
+    renderInspector();
+    document.getElementById('inspectorEmpty').style.display = 'none';
+    document.getElementById('inspectorBody').classList.add('active');
+    document.getElementById('confirmedFlash').classList.remove('show');
   }
-  function closeDrawer() { document.getElementById('drawer-overlay').classList.remove('active'); }
-  function closeDrawerOnOverlay(e) { if (e.target.id === 'drawer-overlay') closeDrawer(); }
+  function closeInspector() {
+    currentInspectorKey = null;
+    document.querySelectorAll('table.summary tr, table.itemlist td.clickable').forEach(el => el.classList.remove('selected'));
+    document.getElementById('inspectorBody').classList.remove('active');
+    document.getElementById('inspectorEmpty').style.display = 'flex';
+  }
+
+  function renderInspector() {
+    const d = inspectorData[currentInspectorKey];
+    document.getElementById('inspTitle').textContent = d.label;
+    const badge = document.getElementById('inspStatusBadge');
+    badge.className = 'badge ' + d.status;
+    badge.textContent = statusLabel[d.status];
+    document.getElementById('inspReason').textContent = d.reason || '抽出根拠のとおりで、確認は不要です。';
+
+    const list = document.getElementById('candidateList');
+    list.innerHTML = '';
+    if (d.candidates.length === 0) {
+      list.innerHTML = '<div class="no-candidate">候補となる記載が見つかりませんでした。<br>下の入力欄に値を入力して確定できます。</div>';
+      document.getElementById('previewBox').innerHTML = '<div class="preview-doc">プレビューなし</div>';
+    } else {
+      d.candidates.forEach((c, i) => {
+        const el = document.createElement('div');
+        el.className = 'candidate' + (i === selectedCandidateIndex ? ' selected' : '');
+        el.onclick = () => selectCandidate(i);
+        el.innerHTML = '<div class="cval">' + c.value + '</div><div class="csrc"><span class="src-icon">' + srcIcon[c.type] + '</span>' + srcTypeLabel[c.type] + ' ・ ' + c.source + '</div>';
+        list.appendChild(el);
+      });
+      renderPreview(d.candidates[selectedCandidateIndex]);
+    }
+    document.getElementById('confirmInput').value = d.candidates.length ? d.candidates[selectedCandidateIndex].value : (d.confirmedValue || '');
+  }
+
+  function selectCandidate(i) {
+    selectedCandidateIndex = i;
+    renderInspector();
+  }
+
+  function renderPreview(c) {
+    const box = document.getElementById('previewBox');
+    let html = '<div class="preview-doc"><span class="src-icon">' + srcIcon[c.type] + '</span>' + c.source.split(' ')[0] + '</div>';
+    if (c.type === 'pdf') {
+      html += '<div class="preview-tags"><span class="preview-tag">PDF プレビュー</span><span class="preview-tag">p.' + c.page + '</span></div>';
+      html += '<div class="preview-text">' + c.text + '</div>';
+      html += '<div class="preview-pager"><button title="デモのため無効">‹</button><span>p. ' + c.page + '</span><button title="デモのため無効">›</button></div>';
+    } else if (c.type === 'eml') {
+      html += '<div class="preview-tags"><span class="preview-tag">メール本文</span></div>';
+      html += '<div class="preview-text">件名: ' + c.subject + '\n\n' + c.text + '</div>';
+    } else if (c.type === 'excel') {
+      html += '<div class="preview-tags"><span class="preview-tag">' + c.sheet + '</span><span class="preview-tag">セル ' + c.cell + '</span></div>';
+      html += '<div class="preview-text">' + c.text + '</div>';
+      html += '<div class="preview-grid">' +
+        '<div class="g-cell"><span class="g-addr">' + prevCol(c.cell) + '</span>…</div>' +
+        '<div class="g-cell target"><span class="g-addr">' + c.cell + '</span>' + stripMark(c.text) + '</div>' +
+        '<div class="g-cell"><span class="g-addr">' + nextCol(c.cell) + '</span>…</div>' +
+        '</div>';
+    } else if (c.type === 'web') {
+      html += '<div class="preview-tags"><span class="preview-tag">Web参照</span></div>';
+      html += '<div class="preview-text">' + c.text + '</div>';
+    }
+    box.innerHTML = html;
+  }
+  function stripMark(t) { const m = t.match(/<mark>(.*?)<\/mark>/); return m ? m[1] : t; }
+  function prevCol(cell) { const m = cell.match(/^([A-Z]+)(\d+)$/); if (!m) return ''; return String.fromCharCode(m[1].charCodeAt(0) - 1) + m[2]; }
+  function nextCol(cell) { const m = cell.match(/^([A-Z]+)(\d+)$/); if (!m) return ''; return String.fromCharCode(m[1].charCodeAt(0) + 1) + m[2]; }
+
+  function confirmValue() {
+    if (!currentInspectorKey) return;
+    const key = currentInspectorKey;
+    const val = document.getElementById('confirmInput').value.trim();
+    const d = inspectorData[key];
+    if (!val) {
+      if (!confirm('値が空です。「不明」として確定しますか？')) return;
+      d.status = 'missing'; d.reason = ''; d.confirmedValue = '';
+    } else {
+      d.status = 'ok'; d.reason = ''; d.confirmedValue = val;
+    }
+    updateCellDisplay(key);
+    document.getElementById('confirmedFlash').classList.add('show');
+    renderInspector();
+  }
+
+  function updateCellDisplay(key) {
+    const d = inspectorData[key];
+    const cell = document.getElementById('cell-' + key);
+    if (!cell) return;
+    if (d.status === 'missing') {
+      cell.innerHTML = '<span class="badge missing">不明</span>';
+    } else {
+      cell.innerHTML = d.confirmedValue;
+    }
+  }
+
+  /* ---------- Inspector 幅のリサイズ ---------- */
+  (function () {
+    const divider = document.getElementById('detailDivider');
+    const panel = document.getElementById('inspector');
+    let dragging = false;
+    divider.addEventListener('mousedown', e => {
+      dragging = true;
+      divider.classList.add('dragging');
+      e.preventDefault();
+    });
+    document.addEventListener('mousemove', e => {
+      if (!dragging) return;
+      const layout = document.querySelector('.detail-layout');
+      const rect = layout.getBoundingClientRect();
+      let w = rect.right - e.clientX;
+      w = Math.max(340, Math.min(680, w));
+      panel.style.width = w + 'px';
+    });
+    document.addEventListener('mouseup', () => { dragging = false; divider.classList.remove('dragging'); });
+  })();
 </script>
 
 </body>
