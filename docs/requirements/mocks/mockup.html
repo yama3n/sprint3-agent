@@ -581,9 +581,9 @@
         </div>
 
         <div class="filter-tabs">
-          <button class="filter-btn active" data-filter="all" onclick="filterList(this)">すべて（3）</button>
-          <button class="filter-btn" data-filter="confirming" onclick="filterList(this)">確認中（2）</button>
-          <button class="filter-btn" data-filter="final" onclick="filterList(this)">確定済み（1）</button>
+          <button class="filter-btn active" data-filter="all" onclick="filterList(this)">すべて（<span id="filterCountAll">3</span>）</button>
+          <button class="filter-btn" data-filter="confirming" onclick="filterList(this)">確認中（<span id="filterCountConfirming">2</span>）</button>
+          <button class="filter-btn" data-filter="final" onclick="filterList(this)">確定済み（<span id="filterCountFinal">1</span>）</button>
         </div>
 
         <div class="list-card">
@@ -592,10 +592,10 @@
             <tr><th>依頼元企業</th><th>案件名</th><th>依頼日時</th><th>状態</th><th>要確認</th><th>最終更新</th></tr>
           </thead>
           <tbody>
-            <tr class="row-item" data-status="confirming" onclick="openDetail(event)">
+            <tr class="row-item" id="inqRow-0091" data-status="confirming" onclick="openDetail(event)">
               <td>東西石油開発</td><td>北海油田 鋼管更新案件</td><td>2026-09-01 10:32</td>
-              <td><span class="badge confirming"><span class="dot"></span>確認中</span></td>
-              <td><button class="count-link review" onclick="event.stopPropagation(); openDetailOverview()">7件</button></td>
+              <td><span class="badge confirming" id="inqRowStatusBadge-0091"><span class="dot"></span>確認中</span></td>
+              <td><button class="count-link review" id="inqRowReviewCount-0091" onclick="event.stopPropagation(); openDetailOverview()">7件</button></td>
               <td class="row-arrow">2026-09-10 14:02</td>
             </tr>
             <tr class="row-item" data-status="final" onclick="openDetail(event)">
@@ -743,7 +743,7 @@
           <li><span>品目1: 特殊コーティング指定</span><span class="note-source">01_オーダーリスト.xlsx シート2 C15</span></li>
         </ul>
 
-        <div class="warning-banner">⚠️ 確定済みの内容を変更しました。再度出力してください。</div>
+        <div class="warning-banner" id="reeditBanner" hidden>⚠️ 確定済みの内容を変更しました。再度出力してください。</div>
 
         <div class="action-bar">
           <button class="btn secondary" data-goto="SCR-05">📎 資料を追加</button>
@@ -921,7 +921,12 @@
     document.querySelectorAll('#SCR-03 .detail-header .badge').forEach(b => {
       b.className = 'badge final'; b.innerHTML = '<span class="dot"></span>確定済み';
     });
+    // 確定済みになったら「確定する」は非表示、「出力する」のみ操作可能にする（03-spec.md アクションバー定義）
     document.getElementById('exportTriggerBtn').hidden = false;
+    document.getElementById('confirmCaseBtn').hidden = true;
+    // 確定した直後は「確定済みの内容をまだ再編集していない」状態なので、再編集注意バナーは出さない
+    document.getElementById('reeditBanner').hidden = true;
+    syncListRowFromCase();
     openExportModal();
   }
 
@@ -944,6 +949,8 @@
       btn.disabled = false;
       btn.textContent = '出力開始';
       closeModal('exportModal');
+      // 再出力が完了したので、「再度出力してください」の注意は解除する
+      document.getElementById('reeditBanner').hidden = true;
       showToast('✓ 出力しました（' + exportFormat.toUpperCase() + '）');
     }, 900);
   }
@@ -1119,6 +1126,37 @@
     });
     document.getElementById('sumReview').textContent = review;
     document.getElementById('sumWeb').textContent = web;
+    syncListRowFromCase();
+  }
+
+  /* ---------- SCR-03 ⇄ SCR-01 状態同期（モック用の共通stateとしてDOMを直接参照する。
+     実装時はAPI/DBから都度再取得する前提で、この関数はその代替表現） ---------- */
+  function syncListRowFromCase() {
+    const reviewCount = document.getElementById('sumReview').textContent;
+    const countEl = document.getElementById('inqRowReviewCount-0091');
+    if (countEl) countEl.textContent = reviewCount + '件';
+
+    const isFinal = document.querySelector('#SCR-03 .detail-header .badge').classList.contains('final');
+    const row = document.getElementById('inqRow-0091');
+    const badgeEl = document.getElementById('inqRowStatusBadge-0091');
+    if (row && badgeEl) {
+      row.dataset.status = isFinal ? 'final' : 'confirming';
+      badgeEl.className = 'badge ' + (isFinal ? 'final' : 'confirming');
+      badgeEl.innerHTML = '<span class="dot"></span>' + (isFinal ? '確定済み' : '確認中');
+    }
+    syncFilterTabCounts();
+    // 現在適用中のフィルタを再適用し、状態が変わった行が正しく表示/非表示されるようにする
+    const activeFilterBtn = document.querySelector('.filter-btn.active');
+    if (activeFilterBtn) applyFilter(activeFilterBtn.dataset.filter);
+  }
+
+  function syncFilterTabCounts() {
+    const rows = document.querySelectorAll('#SCR-01 .row-item');
+    let confirming = 0, final = 0;
+    rows.forEach(r => { if (r.dataset.status === 'confirming') confirming++; else if (r.dataset.status === 'final') final++; });
+    document.getElementById('filterCountAll').textContent = rows.length;
+    document.getElementById('filterCountConfirming').textContent = confirming;
+    document.getElementById('filterCountFinal').textContent = final;
   }
 
   function selectRowHighlight(key) {
@@ -1283,6 +1321,10 @@
     selectedCandidateIndex = 0;
     updateCellDisplay(key);
     updateStatusSummary();
+    // 確定済み（final）状態の案件を、確定後に再編集した場合だけ注意バナーを表示する。
+    // 一度も確定していない（confirming）段階での通常の確認・修正では表示しない。
+    const isCaseFinal = document.querySelector('#SCR-03 .detail-header .badge').classList.contains('final');
+    if (isCaseFinal) document.getElementById('reeditBanner').hidden = false;
     document.getElementById('confirmedFlash').classList.add('show');
     renderDetailContent();
   }
