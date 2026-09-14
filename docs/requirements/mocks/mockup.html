@@ -397,6 +397,8 @@
   }
   .candidate:hover { background: #f7f8f8; }
   .candidate.selected { border-color: #17181a; border-width: 1.5px; background: var(--surface-2); }
+  .candidate.readonly { cursor: default; }
+  .candidate.readonly:hover { background: var(--surface); }
   .candidate .cval { font-weight: 700; margin-bottom: 3px; }
   .candidate .csrc { font-size: 11px; color: var(--text-meta); display: flex; align-items: center; gap: 5px; }
   .src-icon { width: 13px; height: 13px; flex-shrink: 0; }
@@ -1087,7 +1089,10 @@
     quantityScale: { label: '数量感／案件規模', status: 'ok', reason: '', candidates: [
       { value: '約1,200本', source: '03_日本海ガス開発_見積依頼書.pdf p.1', type: 'pdf', page: '1 / 2', text: '数量規模: <mark>約1,200本</mark>' }
     ]},
-    similarCase: { label: '類似案件', status: 'review', reasonType: 'missing', reason: '情報が見つかりません。類似案件に関する記載がありませんでした。', candidates: [] },
+    similarCase: { label: '類似案件', status: 'review', reasonType: 'multiple_candidates', reason: '候補が複数あります。Web検索で類似案件の候補が複数見つかり、どれを指すか一意に特定できませんでした。候補から選択するか、修正して確定してください。', isWebSupplemented: true, candidates: [
+      { value: '北海圏Aプロジェクト（2024年）', source: '業界データベース検索結果1', type: 'web', text: '2024年に開始された北海圏の鋼管更新案件。規模・仕様が類似。' },
+      { value: '北海圏Bプロジェクト（2025年）', source: '業界データベース検索結果2', type: 'web', text: '2025年に開始された別事業者の北海圏プロジェクト。こちらも条件が近い。' }
+    ]},
     marketCondition: { label: '市況', status: 'ok', isWebSupplemented: true, reason: '資料内に記載がないため、Web検索により補完しました。', candidates: [
       { value: '北海圏の油田開発は増加傾向', source: '業界レポート（2026年8月）', type: 'web', text: '北海圏における油田設備更新・新規開発は2026年に入り増加傾向にあります。' }
     ]},
@@ -1167,7 +1172,6 @@
     document.getElementById('inspector').classList.add('open');
     document.getElementById('inspBack').hidden = !cameFromOverview;
     document.getElementById('confirmedFlash').classList.remove('show');
-    document.getElementById('inspectorConfirmBar').style.display = 'block';
     selectRowHighlight(key);
     renderDetailContent();
   }
@@ -1183,7 +1187,10 @@
 
   function renderDetailContent() {
     const d = inspectorData[currentInspectorKey];
-    document.getElementById('inspEyebrow').textContent = '根拠確認';
+    const isReview = d.status === 'review';
+
+    // ヘッダー: 確認不要=閲覧のみの「根拠確認」モード、要確認=候補比較・修正・確定ができる「確認・修正」モード
+    document.getElementById('inspEyebrow').textContent = isReview ? '要確認' : '根拠確認';
     document.getElementById('inspTitle').textContent = d.label;
     const badge = document.getElementById('inspStatusBadge');
     badge.hidden = false;
@@ -1191,27 +1198,36 @@
     badge.textContent = statusLabel[d.status];
     const webBadge = document.getElementById('inspWebBadge');
     webBadge.hidden = !d.isWebSupplemented;
-    document.getElementById('inspReason').textContent = d.reason || '抽出根拠のとおりで、確認は不要です。';
+    document.getElementById('inspReason').textContent = isReview
+      ? (d.reason || '')
+      : '抽出根拠のとおりで、確認は不要です。';
 
-    let html = '<div class="inspector-section-label">候補値（クリックで比較）</div><div id="candidateList"></div>';
+    // 確認不要=候補選択・修正入力・確定ボタンを表示しない読み取り専用モード
+    document.getElementById('inspectorConfirmBar').style.display = isReview ? 'block' : 'none';
+
+    let html = '<div class="inspector-section-label">' + (isReview ? '候補値（クリックで比較）' : '出典') + '</div><div id="candidateList"></div>';
     html += '<div class="inspector-section-label" style="margin-top:14px;">出典プレビュー</div><div class="preview-box" id="previewBox"></div>';
     document.getElementById('inspectorContent').innerHTML = html;
 
     const list = document.getElementById('candidateList');
     if (d.candidates.length === 0) {
-      list.innerHTML = '<div class="no-candidate">候補となる記載が見つかりませんでした。<br>下の入力欄に値を入力して確定できます。</div>';
+      list.innerHTML = isReview
+        ? '<div class="no-candidate">候補となる記載が見つかりませんでした。<br>下の入力欄に値を入力して確定できます。</div>'
+        : '<div class="no-candidate">担当者による入力値です（出典なし）。</div>';
       document.getElementById('previewBox').innerHTML = '<div class="preview-doc">プレビューなし</div>';
     } else {
       d.candidates.forEach((c, i) => {
         const el = document.createElement('div');
-        el.className = 'candidate' + (i === selectedCandidateIndex ? ' selected' : '');
-        el.onclick = () => selectCandidate(i);
+        el.className = 'candidate' + (isReview && i === selectedCandidateIndex ? ' selected' : '') + (isReview ? '' : ' readonly');
+        if (isReview) el.onclick = () => selectCandidate(i);
         el.innerHTML = '<div class="cval">' + c.value + '</div><div class="csrc"><span class="src-icon">' + srcIcon[c.type] + '</span>' + srcTypeLabel[c.type] + ' ・ ' + c.source + '</div>';
         list.appendChild(el);
       });
-      renderPreview(d.candidates[selectedCandidateIndex]);
+      renderPreview(d.candidates[selectedCandidateIndex] || d.candidates[0]);
     }
-    document.getElementById('confirmInput').value = d.candidates.length ? d.candidates[selectedCandidateIndex].value : (d.confirmedValue || '');
+    if (isReview) {
+      document.getElementById('confirmInput').value = d.candidates.length ? d.candidates[selectedCandidateIndex].value : (d.confirmedValue || '');
+    }
   }
 
   function selectCandidate(i) {
@@ -1255,10 +1271,16 @@
     const d = inspectorData[key];
     if (!val) {
       if (!confirm('値が空です。「要確認（情報が見つかりません）」として保存しますか？')) return;
-      d.status = 'review'; d.reasonType = 'missing'; d.reason = reasonLabel.missing; d.confirmedValue = '';
+      d.status = 'review'; d.reasonType = 'missing'; d.reason = reasonLabel.missing; d.confirmedValue = ''; d.isWebSupplemented = false;
     } else {
-      d.status = 'ok'; d.reasonType = undefined; d.reason = ''; d.isWebSupplemented = false; d.confirmedValue = val;
+      // 確定した値がどの候補と一致するかで、Web補完タグ（由来）を引き継ぐかを判断する。
+      // 一致しない場合（担当者が手入力で修正した場合）は出典なしの手入力値として扱う。
+      const chosen = d.candidates.find(c => c.value === val);
+      d.status = 'ok'; d.reasonType = undefined; d.reason = ''; d.confirmedValue = val;
+      d.isWebSupplemented = !!(chosen && chosen.type === 'web');
+      d.candidates = chosen ? [chosen] : [];
     }
+    selectedCandidateIndex = 0;
     updateCellDisplay(key);
     updateStatusSummary();
     document.getElementById('confirmedFlash').classList.add('show');
