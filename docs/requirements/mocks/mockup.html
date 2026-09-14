@@ -586,7 +586,7 @@
           <button class="filter-btn" data-filter="final" onclick="filterList(this)">確定済み（<span id="filterCountFinal">1</span>）</button>
         </div>
 
-        <div class="list-card">
+        <div class="list-card" id="inquiryListCard">
         <table class="list">
           <thead>
             <tr><th>依頼元企業</th><th>案件名</th><th>依頼日時</th><th>状態</th><th>要確認</th><th>最終更新</th></tr>
@@ -614,8 +614,7 @@
         </table>
         </div>
 
-        <p class="caption">（0件時は下記のような空状態を表示）</p>
-        <div class="empty-state">
+        <div class="empty-state" id="inquiryEmptyState" hidden>
           <svg class="empty-illust" width="88" height="72" viewBox="0 0 88 72" fill="none">
             <rect x="14" y="10" width="44" height="56" rx="4" stroke="#c2c7cc" stroke-width="2"/>
             <line x1="22" y1="24" x2="48" y2="24" stroke="#d7dce1" stroke-width="2"/>
@@ -625,8 +624,8 @@
             <line x1="64" y1="44" x2="64" y2="52" stroke="#1b1d1f" stroke-width="2"/>
             <line x1="64" y1="52" x2="70" y2="52" stroke="#1b1d1f" stroke-width="2"/>
           </svg>
-          <div class="empty-title">まだ引合がありません</div>
-          <button class="btn" data-goto="SCR-02">＋ 書類をアップロード</button>
+          <div class="empty-title" id="emptyStateTitle">まだ引合がありません</div>
+          <button class="btn" id="emptyStateCta" data-goto="SCR-02">＋ 書類をアップロード</button>
         </div>
       </section>
 
@@ -986,9 +985,41 @@
     applyFilter(btn.dataset.filter);
   }
   function applyFilter(filter) {
-    document.querySelectorAll('.row-item').forEach(row => {
-      row.style.display = (filter === 'all' || row.dataset.status === filter) ? '' : 'none';
+    const rows = document.querySelectorAll('#SCR-01 .row-item');
+    let visibleCount = 0;
+    rows.forEach(row => {
+      const show = (filter === 'all' || row.dataset.status === filter);
+      row.style.display = show ? '' : 'none';
+      if (show) visibleCount++;
     });
+    updateInquiryEmptyState(filter, rows.length, visibleCount);
+  }
+
+  /* ---------- SCR-01 Empty State（3パターン: 全体0件 / 表示あり / フィルタ結果のみ0件） ---------- */
+  const filterEmptyLabel = { confirming: '確認中', final: '確定済み' };
+  function updateInquiryEmptyState(filter, totalCount, visibleCount) {
+    const listCard = document.getElementById('inquiryListCard');
+    const emptyState = document.getElementById('inquiryEmptyState');
+    const emptyTitle = document.getElementById('emptyStateTitle');
+    const emptyCta = document.getElementById('emptyStateCta');
+
+    if (totalCount === 0) {
+      // 引合が1件も存在しない: 一覧を隠し、CTA付きのグローバル空状態を表示
+      listCard.hidden = true;
+      emptyState.hidden = false;
+      emptyTitle.textContent = 'まだ引合がありません';
+      emptyCta.hidden = false;
+    } else if (visibleCount === 0) {
+      // 全体にはデータがあるが、選択中フィルタの結果だけ0件: フィルタに応じた文言のみ、CTAは出さない
+      listCard.hidden = true;
+      emptyState.hidden = false;
+      emptyTitle.textContent = (filterEmptyLabel[filter] || '') + 'の引合はありません';
+      emptyCta.hidden = true;
+    } else {
+      // 表示する行がある: 一覧のみ表示し、空状態は完全に隠す
+      listCard.hidden = false;
+      emptyState.hidden = true;
+    }
   }
 
   function openDetail(e) { showScreen('SCR-03'); }
@@ -1341,6 +1372,7 @@
   }
 
   updateStatusSummary();
+  applyFilter('all');
 </script>
 
 </body>
