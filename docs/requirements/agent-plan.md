@@ -56,6 +56,24 @@ ExtractionResult {
 
 少なくとも `field_id / value / source_type / source_file / source_location / quoted_text` を各候補について追跡できる形とし、AGENT-02はこのExtractionResultのみを入力として受け取る（パース前の生テキスト全文は再度渡さず、必要な範囲はquoted_textとして既に含まれている前提でコンテキストを節約する）。
 
+### stage / progress_percent の更新方針（SCR-02進捗表示・05-api-ipo.md `GET /inquiries/{id}/agent-status` 用）
+
+AGENT-01・AGENT-02それぞれの実行は `agent_runs` テーブル（04-db.md）に1行ずつ記録される。フロントエンドが参照する `GET /inquiries/{id}/agent-status`（05-api-ipo.md）は、対象引合の`agent_runs`のうち最も新しい（`started_at`が最新の）行の`stage`・`progress_percent`・`status`・`error_message`をそのまま返す。1回のアップロード処理でAGENT-01→AGENT-02の順に2行が作成されるため、AGENT-01完了直後・AGENT-02起動前の一瞬を除き、常にどちらか一方の実行中の行が「最新」として参照される。
+
+`stage`はAGENT-01/AGENT-02のIPOステップの進行に応じて以下の目安で更新する（**PoC用暫定値【仮説】。実測を踏まえて変更可能**）。
+
+| stage | 意味 | 担当エージェント | progress_percent目安【仮説】 | 更新の契機 |
+|-------|------|------------------|------------------------------|-----------|
+| `uploading` | ファイル保存中 | - | 0〜20% | `POST /inquiries`／`POST /inquiries/{id}/files`受付時に`agent_runs`（AGENT-01分）をstatus=running・stage=uploading・progress_percent=0で作成し、ファイル保存完了時点で20%に更新する |
+| `extracting` | AGENT-01が資料をパース・固定項目を抽出中 | AGENT-01 | 20〜55% | IPOステップ1（parse_excel/parse_pdf/parse_eml）開始で20%、ステップ2〜4（extract_case_fields/extract_item_fields/extract_supplementary_notes）の進行に応じて35%・45%程度まで進め、ステップ5（emit_extraction_result）完了・status=succeededで55%に達する |
+| `structuring` | AGENT-02が候補の統合・矛盾検知・訂正評価・ステータス判定を実行中 | AGENT-02 | 55〜80% | AGENT-01のstatus=succeededを検知してAGENT-02の`agent_runs`行を新規作成しstage=structuring・progress_percent=55で開始。IPOステップ1〜4（load_existing_inquiry〜classify_status）の完了に応じて80%まで進める |
+| `reviewing` | AGENT-02がWeb補完候補の取得・採否判定・要確認項目の整理を実行中 | AGENT-02 | 80〜99% | IPOステップ5（web_search_company_info、対象項目がない場合は即時通過）で80%から開始し、判定完了で99%まで進める |
+| `completed` | 構造化JSON（確認中状態）の保存が完了 | AGENT-02 | 100% | IPOステップ6（save_structured_result）の完了条件チェック合格・保存成功でstatus=succeeded・progress_percent=100に更新する |
+| `failed` | 完了条件（失敗）に該当し中断 | AGENT-01 または AGENT-02 | 失敗検知時点の直近の値を維持（巻き戻さない） | 各エージェントの「完了条件・停止条件」表の失敗（中断）条件に該当した時点でstatus=failed・stage=failedに更新し、`error_message`に担当者向けの理由を設定する |
+| `stopped` | 強制停止（ツール呼び出し数上限／タイムアウト）に該当し中断 | AGENT-01 または AGENT-02 | 強制停止時点の直近の値を維持（巻き戻さない） | 各エージェントの「完了条件・停止条件」表の強制停止条件に該当した時点でstatus=stopped・stage=stoppedに更新する。`failed`とは明確に区別し、`error_message`には「一部項目の処理が途中で停止しました」等、部分的な結果が保存されている旨を設定する |
+
+`stopped`は`failed`と異なり、その時点までに処理できた項目を反映した部分的な結果（AGENT-01: 「抽出未完了」フラグ付きExtractionResult、AGENT-02: 未処理項目をstatus=要確認〔理由: parse_error相当〕として保存した構造化JSON）が既に保存されていることを前提とする（各エージェントの「完了条件・停止条件」参照）。
+
 ---
 
 ## 3. AGENT-01 引合情報抽出エージェント
@@ -86,7 +104,7 @@ Excel／PDF／EML等の顧客資料を読み込み、02-requirement.md FUNC-02�
 | 失敗（中断） | 今回アップロードされた全ファイルが対応形式（xlsx/pdf/eml）としてパースできなかった場合 | parse_excel／parse_pdf／parse_emlの成功件数が0件であることを検知した時点で失敗と判定し、ExtractionResultを生成・保存せず担当者へエラー通知する（AGENT-02は起動しない） |
 | 強制停止【仮説・PoC用暫定値。実測を踏まえて変更可能】 | 最大ツール呼び出し数15回、またはタイムアウト90秒（1引合・1回の抽出処理あたり） | エージェント実行ループでツール呼び出しごとにカウンタをインクリメントし上限到達で強制終了。あわせて実行開始時刻からの経過時間を監視し閾値超過でも強制終了。いずれの場合も、その時点までに抽出できた項目のみを反映した部分的なExtractionResultを「抽出未完了」フラグ付きで保存し、担当者・運用ログに検知可能な形で残す |
 
-**出力形式**: 「2. エージェント間データフロー」で定義したExtractionResult（引合単位）。保存先はAGENT-02が参照する一時テーブル `extraction_candidates`（04-dbで設計）。パース済みの中間テキストも `parsed_documents` に保存する。
+**出力形式**: 「2. エージェント間データフロー」で定義したExtractionResult（引合単位）。保存先はAGENT-02が参照する一時テーブル `extraction_results`（04-db.mdで設計）。パース済みの中間テキストも `parsed_documents` に保存する。
 
 #### ユーザーから見た体験
 
@@ -102,13 +120,13 @@ Excel／PDF／EML等の顧客資料を読み込み、02-requirement.md FUNC-02�
 
 | ツール名 | 目的 | 入力 | 出力 | 副作用 | 必要なAPI/テーブル(→④⑤) |
 |---------|------|------|------|--------|------------------------|
-| parse_excel | Excelファイルの表構造（シート・セル・結合セル・複数行見出し等）をテキスト化する | file_id | シート単位の行・列データ（セル座標付き） | read | uploaded_files, parsed_documents |
-| parse_pdf | PDFの本文をページ単位でテキスト化する | file_id | ページ単位テキスト（ページ番号付き） | read | uploaded_files, parsed_documents |
-| parse_eml | メールの件名・本文をセクション単位でテキスト化する（本文中の追記・訂正箇所を含む） | file_id | 件名＋本文のセクション分解テキスト | read | uploaded_files, parsed_documents |
+| parse_excel | Excelファイルの表構造（シート・セル・結合セル・複数行見出し等）をテキスト化する | file_id | シート単位の行・列データ（セル座標付き） | read | inquiry_files, parsed_documents |
+| parse_pdf | PDFの本文をページ単位でテキスト化する | file_id | ページ単位テキスト（ページ番号付き） | read | inquiry_files, parsed_documents |
+| parse_eml | メールの件名・本文をセクション単位でテキスト化する（本文中の追記・訂正箇所を含む） | file_id | 件名＋本文のセクション分解テキスト | read | inquiry_files, parsed_documents |
 | extract_case_fields | パース済みテキストからA項目（引合・案件全体、14固定項目）の候補値と出典を抽出する | パース済みドキュメント、A項目スキーマ | A項目ごとの候補値配列（出典付き） | read | field_definitions |
 | extract_item_fields | パース済みテキストからB項目（品目ごと、8固定項目）の候補値と出典を品目単位で抽出する | パース済みドキュメント、B項目スキーマ | 品目行×B項目の候補値配列（出典付き） | read | field_definitions |
 | extract_supplementary_notes | 固定項目に当てはまらない情報を、案件全体／品目固有を区別した`{項目内容, 出典}`の配列として抽出する | パース済みドキュメント | 案件全体のその他特記事項配列、品目固有のその他条件配列 | read | field_definitions |
-| emit_extraction_result | 上記の抽出結果をExtractionResultスキーマにまとめ、AGENT-02が参照できる形で出力する | A項目候補、B項目候補、特記事項候補 | ExtractionResultオブジェクト | write（一時テーブルへの保存のみ） | extraction_candidates, parsed_documents, agent_runs（実行ログ） |
+| emit_extraction_result | 上記の抽出結果をExtractionResultスキーマにまとめ、AGENT-02が参照できる形で出力する | A項目候補、B項目候補、特記事項候補 | ExtractionResultオブジェクト | write（一時テーブルへの保存のみ） | extraction_results, parsed_documents, agent_runs（実行ログ） |
 
 > 副作用 = read（参照のみ）/ write（作成・更新・削除・外部送信）。write ツールはガードレールと突き合わせる。
 > ファイル形式ごとの差異（parse_excel／parse_pdf／parse_eml）はToolとして処理し、Agentには分割しない（方針2参照）。
@@ -147,7 +165,7 @@ Excel／PDF／EML等の顧客資料を読み込み、02-requirement.md FUNC-02�
 |---------|-----------|------|
 | parse_excel / parse_pdf / parse_eml | read | 対象引合に紐づくファイルのみ読み取り可能 |
 | extract_case_fields / extract_item_fields / extract_supplementary_notes | read | - |
-| emit_extraction_result | write | 一時テーブル（extraction_candidates）への保存のみ。inquiries（確認中・確定済みの構造化JSON本体）への書き込み権限は持たない |
+| emit_extraction_result | write | 一時テーブル（extraction_results）への保存のみ。inquiries（確認中・確定済みの構造化JSON本体）への書き込み権限は持たない |
 
 #### 評価シナリオ
 
@@ -155,7 +173,7 @@ Excel／PDF／EML等の顧客資料を読み込み、02-requirement.md FUNC-02�
 |---|------|--------|------------------|---------|
 | 1 | 正常 | sample-dataの東西石油開発案件（xlsxオーダーリスト＋pdf見積依頼書＋eml引合メールの3ファイル） | ExtractionResultが1件生成され、記載のある固定項目には出典付き候補値が、記載のない項目には空配列が設定される。sample-dataのxlsx（見出し複数行・結合セルあり）からB項目の主要項目（数量・外径・肉厚・長さ・グレード）の候補が正しく抽出される | 生成されたExtractionResultを02-requirement.md FUNC-02の受入基準と突き合わせ、候補値・出典を確認する |
 | 2 | 正常（訂正表現の保持） | sample-dataのeml（本文末尾で数量が240本→320本に更新される明示的訂正の記載があるもの） | 両方の値（240本・320本）が候補として保持され、320本側の候補には`correction_hint.is_explicit_correction = true`が付与される。AGENT-01自身はどちらを採用するかを判断せず、両候補をそのままAGENT-02に引き渡す | ExtractionResultの該当field_idの候補配列に2件の候補と訂正フラグが含まれていることを確認する |
-| 3 | 異常 | 対応形式外のファイル（docx等）のみ、または全ファイルが破損しパース不能なケース | ExtractionResultは保存されず、失敗（中断）として扱われ、AGENT-02が起動しない | extraction_candidatesに該当引合のレコードが作成されていないことを確認する |
+| 3 | 異常 | 対応形式外のファイル（docx等）のみ、または全ファイルが破損しパース不能なケース | ExtractionResultは保存されず、失敗（中断）として扱われ、AGENT-02が起動しない | extraction_resultsに該当引合のレコードが作成されていないことを確認する |
 
 ---
 
@@ -176,7 +194,7 @@ AGENT-01が抽出した候補値（ExtractionResult）を複数資料横断で�
 | 項目 | 内容 |
 |------|------|
 | 起動トリガー | AGENT-01の完了（ExtractionResultの生成） |
-| 入力データ | AGENT-01のExtractionResult（候補値＋出典）。追加アップロード時は、対象引合が新規か追加かを呼び出し元から受け取り、追加の場合はload_existing_inquiryツールで既存構造化JSONと既存出典を取得して統合対象に加える。固定項目スキーマ、内部ステータス判定ルール（missing/conflict/ambiguous/multiple_candidates/parse_error） |
+| 入力データ | AGENT-01のExtractionResult（候補値＋出典）。追加アップロード時は、対象引合が新規か追加かを呼び出し元から受け取り、追加の場合はload_existing_inquiryツールで既存構造化JSON（各項目のvalue/status/confirmed_by）と既存出典・候補を取得して統合対象に加える。固定項目スキーマ、内部ステータス判定ルール（missing/conflict/ambiguous/multiple_candidates/parse_error） |
 | コンテキスト方針 | 渡すもの: AGENT-01の抽出結果全件（値＋出典）、（追加時）既存構造化JSON。<br>渡さないもの: 他の引合のデータ、パース前の生テキスト全文（必要な範囲は既にquoted_textとして渡っているため再度渡さない）、顧客固有情報（数量・納期・案件固有仕様等）を含んだWeb検索クエリ |
 
 #### 完了条件・停止条件
@@ -187,7 +205,14 @@ AGENT-01が抽出した候補値（ExtractionResult）を複数資料横断で�
 | 失敗（中断） | AGENT-01のExtractionResultが存在しない、または全項目の候補が0件かつ既存構造化JSONも存在しない場合 | 入力バリデーションでExtractionResultの必須構造（case_fields/item_fields等のキー）が欠落している、または全field_idの候補配列が空かつ既存JSONもnullであることを検知した時点で失敗と判定し、構造化JSONを保存せず担当者にエラー通知する |
 | 強制停止【仮説・PoC用暫定値。実測を踏まえて変更可能】 | 最大ツール呼び出し数15回、またはタイムアウト120秒（Web検索を含むため抽出より長めに設定） | エージェント実行ループでツール呼び出しごとにカウンタをインクリメントし上限到達で強制終了。あわせて実行開始時刻からの経過時間を監視し閾値超過でも強制終了。いずれの場合も、その時点までに判定できた項目のみを反映し、未処理項目はstatus=要確認（理由: parse_error相当の「処理未完了」）として保存し、担当者に「一部項目の処理が途中で停止しました」と明示する |
 
-**出力形式**: 引合単位の構造化JSON（確認中状態）。各項目は `value / status（確認不要 or 要確認） / 内部理由（要確認の場合のみ: missing/conflict/ambiguous/multiple_candidates/parse_error） / candidates[]（value, source） / is_web_supplemented（true/false） / sources[]` を保持する。ユーザー向け表示は「確認不要／要確認」の2値に一本化し、不明・矛盾・曖昧・複数候補・パース失敗はいずれも要確認としてまとめて表示したうえで内部理由をInspectorで確認できるようにする（この方針と02-requirement.md／03-spec.mdとの差分は「7. 未確定事項」1点目を参照）。保存先は `inquiries` / `item_lines` / `field_sources`（04-dbで設計）。
+**出力形式**: 引合単位の構造化JSON（確認中状態）。各項目は `value / status（確認不要 or 要確認） / 内部理由（要確認の場合のみ: missing/conflict/ambiguous/multiple_candidates/parse_error） / candidates[]（value, source） / is_web_supplemented（true/false） / sources[]` を保持する。ユーザー向け表示は「確認不要／要確認」の2値に一本化し、不明・矛盾・曖昧・複数候補・パース失敗はいずれも要確認としてまとめて表示したうえで内部理由をInspectorで確認できるようにする。保存先は `inquiries`（引合ヘッダー）/ `inquiry_fields`（A項目の値・状態）/ `inquiry_item_fields`（B項目の値・状態）/ `field_candidates`（候補値・出典）（04-db.mdで設計）。
+
+**追加アップロード時にユーザー確定済みの値を自動上書きしないルール**: 追加アップロード（`load_existing_inquiry`で既存データを取得したケース）では、既存項目が`confirmed_by=user`（担当者が確定済み）の場合、AGENT-02は以下の方針で統合する。
+- 既存の確定値（`value`・`status=ok`・`confirmed_by=user`）はそのまま保持し、自動的に書き換えない。
+- 新資料から抽出された候補は、既存候補とは別の新しい候補として`field_candidates`に追加する（`is_selected=false`）。
+- 新候補の値が既存の確定値と完全に一致する場合のみ、`status=ok`のまま（実質変化なし）とする。
+- 新候補の値が既存の確定値と異なる場合は、いずれの値も自動的に正としない。既存の確定値を`value`に残したまま`status`を`review`・`reason_type`を`conflict`に戻し、「確定後に異なる情報が追加資料から検出された」ことを示す。既存の確定候補（`is_selected=true`）と新候補の両方を出典とともに保持し、右側Inspectorで両者を比較できるようにする。
+- 担当者が改めて確定操作（FUNC-08）を行うまで、AGENT-02自身がこの項目の`value`・`status`を再び書き換えることはない。
 
 #### ユーザーから見た体験
 
@@ -203,12 +228,12 @@ AGENT-01が抽出した候補値（ExtractionResult）を複数資料横断で�
 
 | ツール名 | 目的 | 入力 | 出力 | 副作用 | 必要なAPI/テーブル(→④⑤) |
 |---------|------|------|------|--------|------------------------|
-| load_existing_inquiry | 追加アップロード時に、対象引合の既存構造化JSON（確認中／確定済み）と既存出典を取得する | inquiry_id | 既存の構造化JSON、既存出典一覧 | read | inquiries, field_sources |
-| compare_and_merge_candidates | 同一項目について複数資料の候補値を比較し、完全一致するものは統合、値が割れているものは統合せず候補のまま保持する | AGENT-01のExtractionResult（項目単位の候補群）、（追加時）load_existing_inquiryで取得した既存構造化JSON | 項目ごとの統合結果（単一値に統合 or 複数候補のまま） | read | ―（ロジックのみ） |
+| load_existing_inquiry | 追加アップロード時に、対象引合の既存構造化JSON（確認中／確定済み）と既存の値・状態・確定主体（`confirmed_by`）・候補・出典を取得する | inquiry_id | 既存の項目ごとのvalue/status/reason_type/confirmed_by、既存候補・出典一覧 | read | inquiries, inquiry_fields, inquiry_item_fields, field_candidates |
+| compare_and_merge_candidates | 同一項目について複数資料の候補値を比較し、完全一致するものは統合、値が割れているものは統合せず候補のまま保持する。追加アップロード時、対象項目が既存で`confirmed_by=user`の場合は既存値を上書きせず、新候補を追加候補として保持するのみとする（上書き禁止のルールは4章「追加アップロード時にユーザー確定済みの値を自動上書きしないルール」を参照） | AGENT-01のExtractionResult（項目単位の候補群）、（追加時）load_existing_inquiryで取得した既存構造化JSON | 項目ごとの統合結果（単一値に統合 or 複数候補のまま。既存confirmed_by=user項目は既存値を保持したまま新候補を追加） | read | ―（ロジックのみ） |
 | evaluate_explicit_correction | 候補に付与された`correction_hint`をもとに、明示的な訂正意図が読み取れるかを評価し、訂正後の値を採用してよいか判断する | 同一項目の複数候補（correction_hint付き） | 採用値、または「訂正意図不明のため要確認」判定 | read | ―（ロジックのみ） |
-| classify_status | 各項目に内部ステータス（確定 or 要確認〔理由: missing/conflict/ambiguous/multiple_candidates/parse_error〕）を付与する（Web補完候補の採否判定はweb_search_company_info実行後にAGENT-02自身が行い、本ツールはWeb検索前の一次分類を担う） | Step1〜2の統合結果 | 項目ごとのstatus・内部理由 | read | field_status_rules（内部ステータスenum・判定ルール定義） |
+| classify_status | 各項目に内部ステータス（確定 or 要確認〔理由: missing/conflict/ambiguous/multiple_candidates/parse_error〕）を付与する（Web補完候補の採否判定はweb_search_company_info実行後にAGENT-02自身が行い、本ツールはWeb検索前の一次分類を担う）。追加アップロード時、既存confirmed_by=userの値と一致しない新候補が見つかった項目は理由`conflict`で要確認に戻す | Step1〜2の統合結果 | 項目ごとのstatus・内部理由 | read | テーブルなし。ステータスenum（missing/conflict/ambiguous/multiple_candidates/parse_error）は`inquiry_fields.reason_type`/`inquiry_item_fields.reason_type`のCHECK制約およびアプリケーションロジックとして定義する（04-db.md参照。テーブル化はしない） |
 | web_search_company_info | status=missingの項目のうち、公開情報で客観的に確認可能な種別（企業情報・公開製品規格等）に限定して補完候補を取得する。対象を一意に特定できるかどうかの判定はclassify_status側で行い、本ツールは候補（複数件の可能性あり）と出典をそのまま返す | 検索クエリ（企業名等）、対象項目種別 | 補完候補値（1件または複数件）、URL、参照元名称、参照日時 | read（外部送信あり） | 外部Web検索API（要選定） |
-| save_structured_result | 検証・補完済みの結果を、引合単位の構造化JSON（確認中状態）として保存する | 統合済みJSONオブジェクト、対象inquiry_id | 保存された引合レコードID・バージョン、完了条件チェック結果 | write | inquiries, item_lines, field_sources, agent_runs（実行ログ） |
+| save_structured_result | 検証・補完済みの結果を、引合単位の構造化JSON（確認中状態）として保存する | 統合済みJSONオブジェクト、対象inquiry_id | 保存された引合レコードID・バージョン、完了条件チェック結果 | write | inquiries, inquiry_fields, inquiry_item_fields, field_candidates, agent_runs（実行ログ） |
 
 > 副作用 = read（参照のみ）/ write（作成・更新・削除・外部送信）。write ツールはガードレールと突き合わせる。
 > Web検索はAGENT-02のみが持つ（方針7）。AGENT-01はweb_search_company_infoを持たない。
@@ -242,6 +267,7 @@ AGENT-01が抽出した候補値（ExtractionResult）を複数資料横断で�
   - 明示的な訂正意図が読み取れない場合に、片方の値を勝手に採用すること（要確認に回す）
   - 構造化JSONを「確定済み」状態にすること（確認中までしか進めない。確定はFUNC-09としてUIからの人間操作でのみ行う）
   - 対象引合以外（他の引合）のデータを参照・混在させること
+  - 追加アップロード時、既に`confirmed_by=user`（担当者確定済み）の項目を、新資料から得た候補で自動的に上書きすること。新候補が既存の確定値と異なる場合は、値を書き換えずstatus=要確認（理由: conflict）に戻し、新旧の候補・出典を両方保持したうえで担当者の再確定を待つ（詳細は4章「追加アップロード時にユーザー確定済みの値を自動上書きしないルール」を参照）
 - **人間の承認が必要な操作**: AGENT-02の実行ループ内には承認ステップを設けない。ただし出力（構造化JSON・確認中状態）は、必ずFUNC-08（確認・修正）／FUNC-09（確定）で人間の確認・確定を経てから最終利用される。
 - **ツール権限**（方針は02-requirement.md 4章「セキュリティ」を参照）:
 
@@ -261,6 +287,7 @@ AGENT-01が抽出した候補値（ExtractionResult）を複数資料横断で�
 | 3 | 異常（矛盾時の誤確定防止） | 明確な訂正意図のない複数値が同一項目に存在するケース（例: 希望納期がPDFとEMLで異なり、どちらが正しいか文面から判断できない） | いずれか一方を自動確定せず、status=要確認（理由: conflict）として両方の値・出典を保持する | 該当フィールドが単一値に強制されていないこと、候補が2件保持されていることを確認する |
 | 4 | 異常（捏造防止） | 資料に記載のない項目（例: 類似案件）のケース | status=要確認（理由: missing）のままcandidatesが空で保持され、値が捏造されないこと | 該当フィールドの値がnull／空であることを確認する |
 | 5 | 異常（Web補完範囲逸脱防止） | 顧客固有の希望納期が全資料に記載がないケース | 希望納期に対してweb_search_company_infoが呼び出されず、status=要確認（理由: missing）のまま保持される | 実行ログでweb_search_company_infoの呼び出し対象項目に希望納期（顧客固有項目）が含まれていないことを確認する |
+| 6 | 異常（追加アップロード時のユーザー確定値保護） | 担当者が数量を「320本」として確定済み（confirmed_by=user, status=ok）の引合に、値「280本」と記載された追加資料をアップロードするケース | 数量の`value`は「320本」のまま自動的に書き換えられず、status=要確認（理由: conflict）に戻る。既存候補（320本・is_selected=true）と新候補（280本）が両方保持される | 該当フィールドのvalueが320本のまま変化していないこと、candidatesに320本・280本の両方が出典付きで含まれていること、is_selectedが自動的に280本側へ移っていないことを確認する |
 
 ---
 
@@ -301,9 +328,9 @@ AGENT-01が抽出した候補値（ExtractionResult）を複数資料横断で�
 
 ## 7. 未確定事項
 
-1. **強制停止のしきい値（ツール呼び出し数・タイムアウト秒数）は両エージェントとも【仮説】の暫定値。** 実際のsample-data・LLM応答速度での実測を経て、Build段階で調整することを前提としている。
-2. **`field_status_rules`（内部ステータスのenum・判定ルール定義）・`extraction_candidates`（AGENT-01↔AGENT-02間の一時テーブル）は、04-db設計時に他の命名規則と整合させる必要がある。** 本ドキュメントでは仮の名称として記載した。
-3. **追加アップロード時にAGENT-02が行う「既存構造化JSONとの統合」の詳細ルール（例: 既存が確定済み状態のときに新規候補が矛盾したらどう扱うか）は未定義。** FUNC-09の「確定後の再編集を妨げない」という規定とどう整合させるかは、04-db／05-api-ipo設計時に具体化が必要。
+1. **強制停止のしきい値（ツール呼び出し数・タイムアウト秒数）は両エージェントとも【仮説】の暫定値。** 実際のsample-data・LLM応答速度での実測を経て、Build段階で調整することを前提としている。同様に、「stage / progress_percent の更新方針」の各stageのprogress_percent目安も【仮説】の暫定値であり、実測を踏まえてBuild段階で調整可能とする。
+
+> 旧・未確定事項2（`field_status_rules`・`extraction_candidates`の命名整合）は04-db.mdでの設計（テーブル化しない／`extraction_results`に命名）を受け、本ドキュメント全体のテーブル名参照を更新済みのため解消した。旧・未確定事項3（追加アップロード時の既存構造化JSONとの統合ルール）は「4. AGENT-02」の「追加アップロード時にユーザー確定済みの値を自動上書きしないルール」で確定したため解消した。
 
 ---
 

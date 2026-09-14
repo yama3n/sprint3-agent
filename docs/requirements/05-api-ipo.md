@@ -5,7 +5,9 @@
 
 > 認証・認可の方針（認証方式・トークン有効期限・権限モデル）は `02-requirement.md` 4章 非機能要件（セキュリティ）で定義する。ローカル・単一ユーザーのPoCを前提とし、ロール別の権限モデルは持たない（`user` = ログイン済みの唯一のユーザー）。ここでは各APIが「認証を要するか・どの権限が必要か」を詳細設計として整理する。
 >
-> AGENT-01／AGENT-02（`agent-plan.md`）自体はフロントエンドから直接呼び出すツールではなく、引合作成・資料追加のAPI呼び出しをトリガーにバックエンド内で起動されるバックグラウンド処理として扱う。そのため両エージェントの「ツール一覧」はREST APIとしては公開せず、進捗の可視化のみ `GET /inquiries/{inquiry_id}/agent-status` で提供する（`agent_runs`テーブルを参照）。
+> **⚠️ 認証はPoC用モック。** 02-requirement.mdはID/パスワード認証・セッション管理・ロール／権限管理をOut of Scope（3章）としているため、`/auth/login`・`/auth/logout`はJWT発行やセッションテーブルによる本格的な認証基盤を持たない。ログイン画面（SCR-00）というUIデモ・既存の「認証」列（要/不要）による表記を成立させるための簡易処理として扱い、`session_token`はサーバー側で永続化・失効管理をしない（例: 固定トークンや単純なインメモリフラグ等、Build時に最小実装で決めてよい）。本番導入時の認証基盤は02-requirement.md 4章の方針どおり別途検討する。
+>
+> AGENT-01／AGENT-02（`agent-plan.md`）自体はフロントエンドから直接呼び出すツールではなく、引合作成・資料追加のAPI呼び出しをトリガーにバックエンド内で起動されるバックグラウンド処理として扱う。そのため両エージェントの「ツール一覧」はREST APIとしては公開せず、進捗の可視化のみ `GET /inquiries/{inquiry_id}/agent-status` で提供する（`agent_runs`テーブルの`stage`/`progress_percent`を参照。更新方針はagent-plan.md「stage / progress_percent の更新方針」を参照）。
 
 ## 1. API一覧
 
@@ -55,7 +57,7 @@
 | ステップ | Input | Process | Output | 対応API | 対応テーブル(④) |
 |---------|-------|---------|--------|---------|----------------|
 | 1 | 既存引合画面（SCR-03）で「資料を追加」→ SCR-05で追加ファイルを選択 | ファイル形式を検証し、既存の`inquiry_id`に紐づけて保存する | 追加ファイルが同一引合に紐づく | `POST /inquiries/{inquiry_id}/files` | `inquiry_files` |
-| 2 | 保存された追加ファイル（バックグラウンド起動） | AGENT-01が追加ファイルのみをパース・抽出し、AGENT-02が`load_existing_inquiry`で既存構造化JSONを取得した上で統合・再判定する | 構造化JSONの更新（既存の確定済み項目は保持しつつ、新規候補で要確認になった項目のみ更新） | （バックエンド内部処理） | `parsed_documents`, `extraction_results`, `inquiry_fields`, `inquiry_item_fields`, `field_candidates`, `agent_runs` |
+| 2 | 保存された追加ファイル（バックグラウンド起動） | AGENT-01が追加ファイルのみをパース・抽出し、AGENT-02が`load_existing_inquiry`で既存構造化JSON（値・状態・`confirmed_by`）を取得した上で統合・再判定する。既存項目が`confirmed_by=user`（担当者確定済み）の場合、新候補と値が一致すれば`status=ok`を維持し、異なる場合は既存の`value`を自動上書きせず`status=review`・`reason_type=conflict`に戻す（`value`と`confirmed_by=user`はそのまま保持し、新旧候補を両方`field_candidates`に保持する。詳細はagent-plan.md「追加アップロード時にユーザー確定済みの値を自動上書きしないルール」・04-db.md「5. 追加アップロード時のデータ更新ルール」を参照） | 構造化JSONの更新（未確定だった項目は新規候補で再判定され、確定済み項目は一致時のみ確認不要維持・不一致時のみ要確認〔理由: conflict〕に戻る。担当者確定値が自動的に書き換わることはない） | （バックエンド内部処理） | `parsed_documents`, `extraction_results`, `inquiry_fields`, `inquiry_item_fields`, `field_candidates`, `agent_runs` |
 | 3 | 処理完了の検知 | SCR-03への遷移に伴い、更新後の引合詳細を取得する | 更新後の案件サマリー・品目一覧の表示 | `GET /inquiries/{inquiry_id}` | `inquiries`, `inquiry_fields`, `inquiry_item_fields`, `field_candidates` |
 
 ### FLOW-04 成果物確定・出力
@@ -99,6 +101,7 @@
 - **対応テーブル(④)**: `users`
 - **対応フロー**: FLOW-06
 - **スキーマ（型のSSOT）**: `schemas/auth-login`（oval）
+- **備考**: PoC用モック。02-requirement.mdでOut of Scopeとされたセッション管理基盤（トークンの永続化・有効期限管理・失効）は実装しない。`users.password_hash`との簡易照合のみ行う
 
 #### リクエスト
 
@@ -138,6 +141,7 @@
 - **対応テーブル(④)**: -
 - **対応フロー**: FLOW-06
 - **スキーマ（型のSSOT）**: `schemas/auth-logout`（oval）
+- **備考**: PoC用モック。永続化されたセッションストアを持たないため、実体としては認証状態を解除する簡易処理でよい
 
 #### リクエスト
 
@@ -258,10 +262,12 @@
 | フィールド | 意味 |
 |-----------|------|
 | inquiry | 依頼元企業・案件名・引合ID・依頼日時・状態（確認中／確定済み） |
-| case_fields | A項目14件それぞれの値・状態（確認不要／要確認）・要確認理由・候補・出典・Web補完フラグ |
-| items | 品目ごとのB項目8件（同上の構造） |
+| case_fields | A項目14件それぞれの`field_id`・`label`・`display_order`（`field_definitions`をJOINして付与。SCR-03案件サマリー・SCR-04 Inspectorのラベル・表示順に使用）・値・状態（確認不要／要確認）・要確認理由・候補（出典含む）・Web補完フラグ・`confirmed_by` |
+| items | 品目ごとのB項目8件（同上の構造。各`field_id`に対応する`label`・`display_order`も同様に含む） |
 | case_notes / item_notes | 案件全体／品目固有のその他特記事項（出典付き） |
 | review_summary | 要確認件数・Web補完件数（ステータスサマリーチップ表示用） |
+
+バックエンドは`inquiry_fields`/`inquiry_item_fields`と`field_definitions`（`field_id`で結合）を突き合わせて`label`・`display_order`を付与して返す。Scope 1では固定項目スキーマのため、`field_definitions`専用の取得APIは設けない。
 
 （型・構造は oval スキーマを参照）
 
@@ -336,9 +342,9 @@
 
 | フィールド | 意味 |
 |-----------|------|
-| stage | 現在の処理段階（`uploading` / `extracting`（AGENT-01実行中） / `structuring`（AGENT-02実行中） / `reviewing`（要確認項目整理中） / `completed` / `failed`） |
-| progress_percent | 進捗率（0〜100） |
-| error_message | `failed`時のみ、担当者向けのエラー内容 |
+| stage | 現在の処理段階。`agent_runs.stage`をそのまま返す：`uploading`（ファイル保存中） / `extracting`（AGENT-01実行中） / `structuring`（AGENT-02が統合・ステータス判定中） / `reviewing`（AGENT-02がWeb補完・要確認整理中） / `completed`（完了） / `failed`（失敗により中断） / `stopped`（強制停止により中断。`failed`とは区別される）。値は対象引合の`agent_runs`のうち`started_at`が最新の1行から取得する（更新契機・進捗率目安はagent-plan.md「stage / progress_percent の更新方針」を参照） |
+| progress_percent | 進捗率（0〜100の整数）。`agent_runs.progress_percent`をそのまま返す。`failed`/`stopped`時は失敗・停止直前の値を維持する（0に巻き戻さない） |
+| error_message | `failed`または`stopped`時のみ、担当者向けのエラー内容。`stopped`の場合は部分的な結果が保存されている旨を含む |
 
 （型・構造は oval スキーマを参照）
 
@@ -369,8 +375,8 @@
 |-----------|------|------|
 | inquiry_id | Yes（パス） | 対象引合のID |
 | field_id | Yes（パス） | 対象の固定項目ID |
-| value | Yes | 確定する値（候補選択時は候補の値、手動編集時は入力値。空欄も許容し、その場合は要確認〔理由: missing〕に戻す） |
-| selected_candidate_id | No | 候補カードから選択した場合の候補ID（`field_candidates.is_selected`の更新に使用） |
+| value | Yes | 確定する値（候補選択時は候補の値、手動編集時は入力値。空文字列も許容する） |
+| selected_candidate_id | No | 候補カードから選択して確定した場合の候補ID（`field_candidates.is_selected`の更新、および`is_web_supplemented`再計算に使用）。手動入力（候補を選ばず値を直接編集）の場合は指定しない |
 
 （型・構造・バリデーションは上記 oval スキーマを参照）
 
@@ -380,8 +386,12 @@
 |-----------|------|
 | field_id | 更新した項目ID |
 | value | 確定後の値 |
-| status | 更新後の状態（`value`が空の場合は`review`、それ以外は`ok`） |
-| confirmed_by | `user`固定（担当者による確定であることを示す） |
+| status | 更新後の状態。`value`が空文字列の場合は`review`、それ以外は`ok` |
+| reason_type | `status=review`（`value`が空の場合）のときは`missing`固定で返す。`status=ok`のときは`null` |
+| confirmed_by | `user`固定（担当者による確定であることを示す）。`value`が空の場合も、担当者操作による変更であることを示すため`user`のまま返す |
+| is_web_supplemented | 確定した値の由来から再計算して返す。`selected_candidate_id`で選んだ候補の`source_type='web'`の場合は`true`、それ以外（他資料由来の候補選択・手動入力・値を空にした場合）は`false` |
+
+サーバー側の更新ロジック: (1) `selected_candidate_id`が指定された場合、その候補の`field_candidates.is_selected`を`true`にし、他の候補は`false`にする。(2) `inquiry_fields.value`を`value`で更新する。(3) `value`が空文字列なら`status='review'`・`reason_type='missing'`に、そうでなければ`status='ok'`・`reason_type=NULL`にする。(4) `confirmed_by='user'`に更新する。(5) `is_web_supplemented`を上記ルールで再計算して更新する。
 
 （型・構造は oval スキーマを参照）
 
@@ -413,8 +423,8 @@
 | inquiry_id | Yes（パス） | 対象引合のID |
 | item_id | Yes（パス） | 対象の品目ID |
 | field_id | Yes（パス） | 対象の固定項目ID |
-| value | Yes | 確定する値 |
-| selected_candidate_id | No | 候補カードから選択した場合の候補ID |
+| value | Yes | 確定する値（空文字列も許容する） |
+| selected_candidate_id | No | 候補カードから選択して確定した場合の候補ID（`field_candidates.is_selected`の更新、および`is_web_supplemented`再計算に使用）。手動入力の場合は指定しない |
 
 （型・構造・バリデーションは上記 oval スキーマを参照）
 
@@ -424,8 +434,12 @@
 |-----------|------|
 | item_id / field_id | 更新した品目・項目ID |
 | value | 確定後の値 |
-| status | 更新後の状態（`ok` または `review`） |
+| status | 更新後の状態。`value`が空文字列の場合は`review`、それ以外は`ok` |
+| reason_type | `status=review`のときは`missing`固定、`status=ok`のときは`null` |
 | confirmed_by | `user`固定 |
+| is_web_supplemented | 選択した候補の`source_type='web'`なら`true`、それ以外（手動入力・値を空にした場合を含む）は`false`として再計算して返す |
+
+サーバー側の更新ロジックは「案件全体項目（A項目）の値修正・確定」と同一（対象が`inquiry_item_fields`/品目単位の`field_candidates`である点のみ異なる）。
 
 （型・構造は oval スキーマを参照）
 
