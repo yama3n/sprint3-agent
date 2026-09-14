@@ -206,8 +206,8 @@ AGENT-01が抽出した候補値（ExtractionResult）を複数資料横断で�
 | load_existing_inquiry | 追加アップロード時に、対象引合の既存構造化JSON（確認中／確定済み）と既存出典を取得する | inquiry_id | 既存の構造化JSON、既存出典一覧 | read | inquiries, field_sources |
 | compare_and_merge_candidates | 同一項目について複数資料の候補値を比較し、完全一致するものは統合、値が割れているものは統合せず候補のまま保持する | AGENT-01のExtractionResult（項目単位の候補群）、（追加時）load_existing_inquiryで取得した既存構造化JSON | 項目ごとの統合結果（単一値に統合 or 複数候補のまま） | read | ―（ロジックのみ） |
 | evaluate_explicit_correction | 候補に付与された`correction_hint`をもとに、明示的な訂正意図が読み取れるかを評価し、訂正後の値を採用してよいか判断する | 同一項目の複数候補（correction_hint付き） | 採用値、または「訂正意図不明のため要確認」判定 | read | ―（ロジックのみ） |
-| classify_status | 各項目に内部ステータス（確定 or 要確認〔理由: missing/conflict/ambiguous/multiple_candidates/parse_error〕）を付与する | Step1〜2の統合結果 | 項目ごとのstatus・内部理由 | read | field_status_rules（内部ステータスenum・判定ルール定義） |
-| web_search_company_info | status=missingの項目のうち、公開情報で客観的に確認可能な種別（企業情報・公開製品規格等）に限定して補完候補を取得する | 検索クエリ（企業名等）、対象項目種別 | 補完候補値、URL、参照元名称、参照日時 | read（外部送信あり） | 外部Web検索API（要選定） |
+| classify_status | 各項目に内部ステータス（確定 or 要確認〔理由: missing/conflict/ambiguous/multiple_candidates/parse_error〕）を付与する（Web補完候補の採否判定はweb_search_company_info実行後にAGENT-02自身が行い、本ツールはWeb検索前の一次分類を担う） | Step1〜2の統合結果 | 項目ごとのstatus・内部理由 | read | field_status_rules（内部ステータスenum・判定ルール定義） |
+| web_search_company_info | status=missingの項目のうち、公開情報で客観的に確認可能な種別（企業情報・公開製品規格等）に限定して補完候補を取得する。対象を一意に特定できるかどうかの判定はclassify_status側で行い、本ツールは候補（複数件の可能性あり）と出典をそのまま返す | 検索クエリ（企業名等）、対象項目種別 | 補完候補値（1件または複数件）、URL、参照元名称、参照日時 | read（外部送信あり） | 外部Web検索API（要選定） |
 | save_structured_result | 検証・補完済みの結果を、引合単位の構造化JSON（確認中状態）として保存する | 統合済みJSONオブジェクト、対象inquiry_id | 保存された引合レコードID・バージョン、完了条件チェック結果 | write | inquiries, item_lines, field_sources, agent_runs（実行ログ） |
 
 > 副作用 = read（参照のみ）/ write（作成・更新・削除・外部送信）。write ツールはガードレールと突き合わせる。
@@ -227,7 +227,7 @@ AGENT-01が抽出した候補値（ExtractionResult）を複数資料横断で�
 | 2 | AGENT-01のExtractionResult（項目ごとの候補群）、（追加時）Step1で取得した既存構造化JSON | 全項目を対象に資料横断比較を行う方針を決定 | compare_and_merge_candidates | 一致項目は統合済み値、不一致項目は複数候補のまま残る |
 | 3 | 不一致項目のうちcorrection_hint付きの候補 | 明示的な訂正の意図が読み取れるか評価する方針を決定 | evaluate_explicit_correction | 訂正後の値が採用される項目と、意図不明で要確認に回る項目に分かれる（例: eml内の数量訂正240本→320本は明示的意図ありと判定され320本を採用） |
 | 4 | Step2〜3の統合結果（全項目） | 各項目に内部ステータスを付与する方針を決定 | classify_status | 各項目がstatus=確定／要確認（理由: missing/conflict/ambiguous/multiple_candidates/parse_errorのいずれか）に分類される |
-| 5 | status=missingの項目一覧 | missing項目のうち公開情報で確認可能な種別のみを補完対象として選別し、顧客固有の数量・希望納期・案件固有仕様等は対象外と判断 | web_search_company_info（該当項目のみ） | 補完できた項目にはWeb補完値＋出典（URL・参照元名称・参照日時）が付与され、対象外・補完不可の項目はstatus=要確認（理由: missing）のまま |
+| 5 | status=missingの項目一覧 | missing項目のうち公開情報で確認可能な種別のみを補完対象として選別し、顧客固有の数量・希望納期・案件固有仕様等は対象外と判断。検索結果取得後、対象を客観的かつ一意に特定できるかを判断する（同名候補が複数ある・検索結果間で値が割れる・情報源の信頼性が不十分・客観的に断定できない、のいずれかに該当する場合は一意特定不可と判断） | web_search_company_info（該当項目のみ） | 一意に特定できた項目はstatus=確定・is_web_supplemented=trueとしてWeb補完値＋出典（URL・参照元名称・参照日時）が付与される。対象外・補完不可・一意特定不可の項目はstatus=要確認（理由: missing／一意特定不可の場合はambiguousまたはmultiple_candidates）のまま |
 | 6 | 全項目の最終状態 | 構造化JSONスキーマに沿って統合し、完了条件（5点）を満たす見込みか自己検証 | save_structured_result | 引合レコードが確認中状態で保存される |
 | 7 | Step6の保存結果 | 完了条件を充足したか判定 | -（終了） | 充足していればSCR-03へ結果を返して終了（確定済みへの遷移は行わない） |
 
@@ -238,6 +238,7 @@ AGENT-01が抽出した候補値（ExtractionResult）を複数資料横断で�
 - **してはいけない操作**:
   - 顧客固有の数量・希望納期・案件固有の要求仕様等をWeb検索で補完すること（FUNC-04の対象外規定）
   - 複数資料間で判断できない矛盾のどちらかを自動的に正として採用すること（必ずstatus=要確認〔理由: conflict等〕として両方の値・出典を保持する）
+  - Web検索結果が対象を一意に特定できない場合（同名候補が複数ある・検索結果間で値が割れる・情報源の信頼性が不十分・客観的に断定できない、のいずれか）に、いずれかの候補を自動的に正として採用し「確認不要」にすること（必ずstatus=要確認〔理由: ambiguousまたはmultiple_candidates〕として保持し、Web補完だからといって自動的に確認不要にしない）
   - 明示的な訂正意図が読み取れない場合に、片方の値を勝手に採用すること（要確認に回す）
   - 構造化JSONを「確定済み」状態にすること（確認中までしか進めない。確定はFUNC-09としてUIからの人間操作でのみ行う）
   - 対象引合以外（他の引合）のデータを参照・混在させること
@@ -281,7 +282,7 @@ AGENT-01が抽出した候補値（ExtractionResult）を複数資料横断で�
 - **不要なAgent分割になっていないか**: なっていないと判断した。ファイル形式別（PDF/Excel/Email）のAgent分割はToolに留め、Web補完のみを独立Agentにする案も検討のうえ見送った（判断根拠は4章各サブエージェント構成節に記載）。2体を超える分割は行っていない。
 - **Agent間で同じ判断を重複していないか**: 重複していない。ステータス判定（missing/conflict/ambiguous/multiple_candidates/parse_error）と統合判断（どちらの値を採用するか）はAGENT-02のみが行い、AGENT-01は候補の列挙のみを行う。
 - **Toolで十分な処理をAgent化していないか**: parse_excel／parse_pdf／parse_emlは純粋な決定的変換処理としてToolに留めた。compare_and_merge_candidates／evaluate_explicit_correction／classify_statusはルールベースに近い部分もあるが、「表記ゆれのある値をどう同一視するか」「訂正の意図をどう読み取るか」はLLM推論を要する曖昧判断を含むため、AGENT-02内のツール呼び出しとして残した。将来的にルール化が十分進めば、Toolではなく決定的コードへ移行する余地がある。
-- **02-requirement.md／03-spec.mdとの矛盾がないか**: 固定項目数・区分・「エンジ会社」表記は02-requirement.mdに合わせて統一した（詳細は次節）。ユーザー向けステータス表現（確認不要／要確認の2値＋内部理由）についても、02-requirement.md FUNC-07・03-spec.md 4章を本ドキュメントと同じ方針に更新済みであり、矛盾は解消されている。唯一、`mocks/mockup.html`は本方針改定前の4状態表示のまま残っており、モック側の追随更新が未了である（詳細は「7. 未確定事項」の1点目を参照）。
+- **02-requirement.md／03-spec.mdとの矛盾がないか**: 固定項目数・区分・「エンジ会社」表記は02-requirement.mdに合わせて統一した（詳細は次節）。ユーザー向けステータス表現（確認不要／要確認の2値＋内部理由）についても、02-requirement.md FUNC-07・03-spec.md 4章を本ドキュメントと同じ方針に更新済みであり、矛盾は解消されている。`mocks/mockup.html`も同方針（確認不要／要確認の2状態、理由はInspector内表示、Web補完は別属性）に更新済みで、4ドキュメント間の矛盾は解消している。
 
 ### 用語・固定項目の統一（02-requirement.mdを正とする）
 
@@ -300,11 +301,9 @@ AGENT-01が抽出した候補値（ExtractionResult）を複数資料横断で�
 
 ## 7. 未確定事項
 
-1. **【解消済み・要フォローアップ】ユーザー向けステータス表現は02-requirement.md／03-spec.mdとも本ドキュメントと同じ方針（確認不要／要確認の2値、内部理由としてmissing/conflict/ambiguous/multiple_candidates/parse_errorを保持、Web補完は理由と別軸の由来属性）に更新済みで、3ドキュメント間の矛盾は解消した。**
-   - 唯一、`mocks/mockup.html`はこの改定前の「確認不要／不明／要確認／アラート」の4状態表示のまま残っている。バッジの色分け（`--c-missing`・`--c-alert`）、SCR-01の不明／アラート列、SCR-03/SCR-04のoverviewグルーピング等をあわせて更新するモック側の作業が別途必要（03-spec.md 3章のモック差分注記を参照）。
-2. **強制停止のしきい値（ツール呼び出し数・タイムアウト秒数）は両エージェントとも【仮説】の暫定値。** 実際のsample-data・LLM応答速度での実測を経て、Build段階で調整することを前提としている。
-3. **`field_status_rules`（内部ステータスのenum・判定ルール定義）・`extraction_candidates`（AGENT-01↔AGENT-02間の一時テーブル）は、04-db設計時に他の命名規則と整合させる必要がある。** 本ドキュメントでは仮の名称として記載した。
-4. **追加アップロード時にAGENT-02が行う「既存構造化JSONとの統合」の詳細ルール（例: 既存が確定済み状態のときに新規候補が矛盾したらどう扱うか）は未定義。** FUNC-09の「確定後の再編集を妨げない」という規定とどう整合させるかは、04-db／05-api-ipo設計時に具体化が必要。
+1. **強制停止のしきい値（ツール呼び出し数・タイムアウト秒数）は両エージェントとも【仮説】の暫定値。** 実際のsample-data・LLM応答速度での実測を経て、Build段階で調整することを前提としている。
+2. **`field_status_rules`（内部ステータスのenum・判定ルール定義）・`extraction_candidates`（AGENT-01↔AGENT-02間の一時テーブル）は、04-db設計時に他の命名規則と整合させる必要がある。** 本ドキュメントでは仮の名称として記載した。
+3. **追加アップロード時にAGENT-02が行う「既存構造化JSONとの統合」の詳細ルール（例: 既存が確定済み状態のときに新規候補が矛盾したらどう扱うか）は未定義。** FUNC-09の「確定後の再編集を妨げない」という規定とどう整合させるかは、04-db／05-api-ipo設計時に具体化が必要。
 
 ---
 
