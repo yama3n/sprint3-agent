@@ -10,7 +10,9 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 @router.post("/login", response_model=LoginResponse)
 async def login(payload: LoginRequest) -> LoginResponse:
     if not payload.email or not payload.password:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="VALIDATION_ERROR")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="VALIDATION_ERROR"
+        )
     if not verify_mock_credentials(payload.email, payload.password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="INVALID_CREDENTIALS"

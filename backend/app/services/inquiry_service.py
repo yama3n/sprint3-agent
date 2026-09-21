@@ -4,12 +4,23 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.schemas.inquiry import (
     AgentStatusResponse,
+    CandidateRead,
+    FieldRead,
+    InquiryDetailResponse,
+    InquiryHeader,
     InquiryListItem,
     InquiryListResponse,
+    ItemRead,
+    NoteRead,
+    ReviewSummary,
 )
 from app.repositories.agent_run_repository import AgentRunRepository
+from app.repositories.field_candidate_repository import FieldCandidateRepository
+from app.repositories.field_definition_repository import FieldDefinitionRepository
 from app.repositories.inquiry_field_repository import InquiryFieldRepository
 from app.repositories.inquiry_item_field_repository import InquiryItemFieldRepository
+from app.repositories.inquiry_item_repository import InquiryItemRepository
+from app.repositories.inquiry_note_repository import InquiryNoteRepository
 from app.repositories.inquiry_repository import InquiryRepository
 
 
@@ -74,4 +85,79 @@ async def get_agent_status(
         progress_percent=agent_run.progress_percent,
         status=agent_run.status,
         error_message=agent_run.error_message,
+    )
+
+
+async def get_inquiry_detail(
+    session: AsyncSession, inquiry_id: int
+) -> InquiryDetailResponse:
+    """GET /inquiries/{inquiry_id}（FUNC-02〜07の表示、05-api-ipo.md）。
+
+    inquiry_fields/inquiry_item_fields を field_definitions と突き合わせて
+    label/display_order を解決する（Scope 1は固定スキーマのため専用エンドポイントは設けない）。
+    """
+    inquiry = await InquiryRepository(session).get(inquiry_id)
+    if inquiry is None:
+        raise InquiryNotFoundError(inquiry_id)
+
+    field_defs = {f.id: f for f in await FieldDefinitionRepository(session).list()}
+    candidate_repo = FieldCandidateRepository(session)
+
+    async def _to_field_read(row, *, is_item: bool) -> FieldRead:
+        definition = field_defs[row.field_definition_id]
+        candidates = (
+            await candidate_repo.list_by_inquiry_item_field(row.id)
+            if is_item
+            else await candidate_repo.list_by_inquiry_field(row.id)
+        )
+        return FieldRead(
+            field_id=definition.field_id,
+            label=definition.label,
+            display_order=definition.display_order,
+            value=row.value,
+            status=row.status,
+            reason_type=row.reason_type,
+            is_web_supplemented=row.is_web_supplemented,
+            confirmed_by=row.confirmed_by,
+            candidates=[CandidateRead.model_validate(c) for c in candidates],
+        )
+
+    case_rows = await InquiryFieldRepository(session).list_by_inquiry(inquiry_id)
+    case_fields = [await _to_field_read(row, is_item=False) for row in case_rows]
+    case_fields.sort(key=lambda f: f.display_order)
+
+    notes = await InquiryNoteRepository(session).list_by_inquiry(inquiry_id)
+    case_notes = [NoteRead.model_validate(n) for n in notes if n.scope == "case"]
+
+    item_field_repo = InquiryItemFieldRepository(session)
+    items: list[ItemRead] = []
+    for item in await InquiryItemRepository(session).list_by_inquiry(inquiry_id):
+        item_rows = await item_field_repo.list_by_inquiry_item(item.id)
+        item_fields = [await _to_field_read(row, is_item=True) for row in item_rows]
+        item_fields.sort(key=lambda f: f.display_order)
+        items.append(
+            ItemRead(
+                id=item.id,
+                item_no=item.item_no,
+                fields=item_fields,
+                notes=[
+                    NoteRead.model_validate(n)
+                    for n in notes
+                    if n.scope == "item" and n.inquiry_item_id == item.id
+                ],
+            )
+        )
+
+    all_fields = case_fields + [f for item in items for f in item.fields]
+    review_summary = ReviewSummary(
+        review_count=sum(1 for f in all_fields if f.status == "review"),
+        web_supplemented_count=sum(1 for f in all_fields if f.is_web_supplemented),
+    )
+
+    return InquiryDetailResponse(
+        inquiry=InquiryHeader.model_validate(inquiry),
+        case_fields=case_fields,
+        items=items,
+        case_notes=case_notes,
+        review_summary=review_summary,
     )

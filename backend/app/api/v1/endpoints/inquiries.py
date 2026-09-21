@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.schemas.inquiry import (
     AgentStatusResponse,
+    InquiryDetailResponse,
     InquiryListResponse,
     UploadResponse,
 )
@@ -34,6 +35,20 @@ async def list_inquiries(
     _current_user: str = Depends(get_current_user),
 ) -> InquiryListResponse:
     return await inquiry_service.list_inquiries(session, status=status)
+
+
+@router.get("/{inquiry_id}", response_model=InquiryDetailResponse)
+async def get_inquiry_detail(
+    inquiry_id: int,
+    session: AsyncSession = Depends(get_db),
+    _current_user: str = Depends(get_current_user),
+) -> InquiryDetailResponse:
+    try:
+        return await inquiry_service.get_inquiry_detail(session, inquiry_id)
+    except InquiryNotFoundError:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND, detail="INQUIRY_NOT_FOUND"
+        ) from None
 
 
 @router.post("", status_code=status.HTTP_202_ACCEPTED, response_model=UploadResponse)

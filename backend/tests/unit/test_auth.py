@@ -6,7 +6,10 @@ from app.core.config import settings
 async def test_login_success(client: AsyncClient) -> None:
     resp = await client.post(
         "/api/v1/auth/login",
-        json={"email": settings.MOCK_USER_EMAIL, "password": settings.MOCK_USER_PASSWORD},
+        json={
+            "email": settings.MOCK_USER_EMAIL,
+            "password": settings.MOCK_USER_PASSWORD,
+        },
     )
     assert resp.status_code == 200
     body = resp.json()

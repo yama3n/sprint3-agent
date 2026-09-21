@@ -21,8 +21,12 @@ async def get_current_user(authorization: str | None = Header(default=None)) -> 
     永続化されたセッション・失効管理は行わない（PoC用モック）。
     """
     if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="UNAUTHORIZED")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="UNAUTHORIZED"
+        )
     token = authorization.removeprefix("Bearer ")
     if token != settings.MOCK_AUTH_TOKEN:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="UNAUTHORIZED")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="UNAUTHORIZED"
+        )
     return settings.MOCK_USER_EMAIL

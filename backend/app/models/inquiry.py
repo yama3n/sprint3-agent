@@ -1,6 +1,14 @@
 import datetime
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.db import Base
@@ -8,7 +16,9 @@ from app.core.db import Base
 
 class Inquiry(Base):
     __tablename__ = "inquiries"
-    __table_args__ = (CheckConstraint("status IN ('draft','final')", name="ck_inquiries_status"),)
+    __table_args__ = (
+        CheckConstraint("status IN ('draft','final')", name="ck_inquiries_status"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     inquiry_code: Mapped[str] = mapped_column(String(30), unique=True, nullable=False)
@@ -16,7 +26,9 @@ class Inquiry(Base):
     requester: Mapped[str | None] = mapped_column(String(255))
     project_name: Mapped[str | None] = mapped_column(String(255))
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="draft")
-    requested_at: Mapped[datetime.datetime | None] = mapped_column(DateTime(timezone=True))
+    requested_at: Mapped[datetime.datetime | None] = mapped_column(
+        DateTime(timezone=True)
+    )
     created_at: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -28,7 +40,9 @@ class Inquiry(Base):
 class InquiryFile(Base):
     __tablename__ = "inquiry_files"
     __table_args__ = (
-        CheckConstraint("file_type IN ('xlsx','pdf','eml')", name="ck_inquiry_files_type"),
+        CheckConstraint(
+            "file_type IN ('xlsx','pdf','eml')", name="ck_inquiry_files_type"
+        ),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)

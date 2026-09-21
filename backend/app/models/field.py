@@ -1,6 +1,15 @@
 import datetime
 
-from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.db import Base
@@ -50,7 +59,9 @@ class InquiryField(Base):
     value: Mapped[str | None] = mapped_column(Text)
     status: Mapped[str] = mapped_column(String(10), nullable=False, default="review")
     reason_type: Mapped[str | None] = mapped_column(String(20))
-    is_web_supplemented: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    is_web_supplemented: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False
+    )
     confirmed_by: Mapped[str | None] = mapped_column(String(10))
     confirmed_by_user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
     updated_at: Mapped[datetime.datetime] = mapped_column(
@@ -73,14 +84,18 @@ class InquiryItemField(Base):
     )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    inquiry_item_id: Mapped[int] = mapped_column(ForeignKey("inquiry_items.id"), nullable=False)
+    inquiry_item_id: Mapped[int] = mapped_column(
+        ForeignKey("inquiry_items.id"), nullable=False
+    )
     field_definition_id: Mapped[int] = mapped_column(
         ForeignKey("field_definitions.id"), nullable=False
     )
     value: Mapped[str | None] = mapped_column(Text)
     status: Mapped[str] = mapped_column(String(10), nullable=False, default="review")
     reason_type: Mapped[str | None] = mapped_column(String(20))
-    is_web_supplemented: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    is_web_supplemented: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False
+    )
     confirmed_by: Mapped[str | None] = mapped_column(String(10))
     confirmed_by_user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
     updated_at: Mapped[datetime.datetime] = mapped_column(
@@ -92,7 +107,8 @@ class FieldCandidate(Base):
     __tablename__ = "field_candidates"
     __table_args__ = (
         CheckConstraint(
-            "source_type IN ('pdf','excel','eml','web')", name="ck_field_candidates_source_type"
+            "source_type IN ('pdf','excel','eml','web')",
+            name="ck_field_candidates_source_type",
         ),
         CheckConstraint(
             "(inquiry_field_id IS NOT NULL AND inquiry_item_field_id IS NULL) OR "
@@ -102,7 +118,9 @@ class FieldCandidate(Base):
     )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    inquiry_field_id: Mapped[int | None] = mapped_column(ForeignKey("inquiry_fields.id"))
+    inquiry_field_id: Mapped[int | None] = mapped_column(
+        ForeignKey("inquiry_fields.id")
+    )
     inquiry_item_field_id: Mapped[int | None] = mapped_column(
         ForeignKey("inquiry_item_fields.id")
     )
@@ -113,8 +131,12 @@ class FieldCandidate(Base):
     quoted_text: Mapped[str | None] = mapped_column(Text)
     web_url: Mapped[str | None] = mapped_column(String(500))
     web_source_name: Mapped[str | None] = mapped_column(String(255))
-    web_referenced_at: Mapped[datetime.datetime | None] = mapped_column(DateTime(timezone=True))
-    is_explicit_correction: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    web_referenced_at: Mapped[datetime.datetime | None] = mapped_column(
+        DateTime(timezone=True)
+    )
+    is_explicit_correction: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False
+    )
     superseded_value: Mapped[str | None] = mapped_column(Text)
     is_selected: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     created_at: Mapped[datetime.datetime] = mapped_column(

@@ -15,7 +15,9 @@ async def db_session() -> AsyncSession:
 
 async def test_add_and_get_by_code(db_session: AsyncSession) -> None:
     repo = InquiryRepository(db_session)
-    inquiry = Inquiry(inquiry_code="INQ-TEST-0001", requester="テスト株式会社", status="draft")
+    inquiry = Inquiry(
+        inquiry_code="INQ-TEST-0001", requester="テスト株式会社", status="draft"
+    )
 
     await repo.add(inquiry)
     await db_session.flush()

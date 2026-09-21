@@ -36,10 +36,12 @@ class AgentRun(Base):
             name="ck_agent_runs_agent_name",
         ),
         CheckConstraint(
-            "trigger IN ('new_upload','additional_upload')", name="ck_agent_runs_trigger"
+            "trigger IN ('new_upload','additional_upload')",
+            name="ck_agent_runs_trigger",
         ),
         CheckConstraint(
-            "status IN ('running','succeeded','failed','stopped')", name="ck_agent_runs_status"
+            "status IN ('running','succeeded','failed','stopped')",
+            name="ck_agent_runs_status",
         ),
         CheckConstraint(f"stage IN {_STAGES}", name="ck_agent_runs_stage"),
         CheckConstraint(
@@ -59,7 +61,9 @@ class AgentRun(Base):
     started_at: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
-    finished_at: Mapped[datetime.datetime | None] = mapped_column(DateTime(timezone=True))
+    finished_at: Mapped[datetime.datetime | None] = mapped_column(
+        DateTime(timezone=True)
+    )
     error_message: Mapped[str | None] = mapped_column(Text)
 
 
@@ -68,9 +72,13 @@ class ExtractionResult(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     inquiry_id: Mapped[int] = mapped_column(ForeignKey("inquiries.id"), nullable=False)
-    agent_run_id: Mapped[int] = mapped_column(ForeignKey("agent_runs.id"), nullable=False)
+    agent_run_id: Mapped[int] = mapped_column(
+        ForeignKey("agent_runs.id"), nullable=False
+    )
     payload: Mapped[dict] = mapped_column(JSON, nullable=False)
     created_at: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
-    consumed_at: Mapped[datetime.datetime | None] = mapped_column(DateTime(timezone=True))
+    consumed_at: Mapped[datetime.datetime | None] = mapped_column(
+        DateTime(timezone=True)
+    )
