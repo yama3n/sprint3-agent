@@ -41,3 +41,32 @@ class InquiryListItem(BaseModel):
 class InquiryListResponse(BaseModel):
     items: list[InquiryListItem]
     total_count: int
+
+
+class UploadResponse(BaseModel):
+    """POST /inquiries・POST /inquiries/{id}/files のレスポンス（05-api-ipo.md）。"""
+
+    inquiry_id: int
+    status: Literal["draft"] = "draft"
+    agent_run_id: int
+
+
+AgentStage = Literal[
+    "uploading",
+    "extracting",
+    "structuring",
+    "reviewing",
+    "completed",
+    "failed",
+    "stopped",
+]
+
+
+class AgentStatusResponse(BaseModel):
+    """GET /inquiries/{id}/agent-status のレスポンス（05-api-ipo.md）。
+    対象引合のagent_runsのうち最も新しい行のstage/progress_percent/statusをそのまま返す。"""
+
+    stage: AgentStage
+    progress_percent: int
+    status: str
+    error_message: str | None = None

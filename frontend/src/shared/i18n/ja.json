@@ -47,5 +47,32 @@
     "emptyCta": "＋ 書類をアップロード",
     "emptyTitleFiltered": "{{label}}の引合はありません",
     "loadError": "引合一覧の取得に失敗しました"
+  },
+  "upload": {
+    "title": "書類アップロード",
+    "subtitle": "ファイルを入れるだけで、新しい引合が自動的に作成されます。",
+    "addTitle": "資料を追加",
+    "addSubtitle": "既存の引合に資料を追加します。追加後、AIが再解析して内容を更新します。",
+    "targetInquiry": "対象の引合",
+    "chipExcel": "Excel（.xlsx）",
+    "chipPdf": "PDF（.pdf）",
+    "chipEml": "メール（.eml）",
+    "dropzoneMain": "ここにドラッグ＆ドロップ",
+    "dropzoneOr": "または",
+    "selectFiles": "ファイルを選択",
+    "remove": "削除",
+    "unsupportedFile": "「{{name}}」は対応していません（Excel／PDF／メールのみ）",
+    "startUpload": "アップロード開始",
+    "startAdd": "追加する",
+    "waiting": "アップロード待機中",
+    "stageUploading": "アップロード中…",
+    "stageExtracting": "AI解析中…",
+    "stageStructuring": "構造化中…",
+    "stageReviewing": "要確認項目整理中…",
+    "stageCompleted": "完了",
+    "stageFailed": "解析に失敗しました",
+    "stageStopped": "処理が途中で停止しました",
+    "uploadError": "アップロードに失敗しました。ファイルを確認して再度お試しください",
+    "goToDetail": "引合詳細を開く"
   }
 }

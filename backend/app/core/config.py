@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     # AI Agent
     ANTHROPIC_API_KEY: str = ""
 
+    # アップロードファイルの保存先（04-db.md: ファイル本体はDBに保存しない、storage_pathのみ）
+    STORAGE_DIR: str = "storage"
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 

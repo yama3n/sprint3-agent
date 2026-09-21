@@ -28,6 +28,9 @@ backend/openapi.json
 # Agent traces（エージェント実行トレース。設計との突き合わせ用ローカルログ）
 backend/traces/
 
+# アップロードされた顧客資料の保存先（04-db.mdのstorage_path先。Gitに追加しない）
+backend/storage/
+
 # Confidential local-only inputs（顧客資料相当。Gitに追加しない）
 sample-data/
 reference-local/
