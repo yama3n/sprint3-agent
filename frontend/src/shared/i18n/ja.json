@@ -27,5 +27,25 @@
     "logoutConfirmBody": "未確定の変更は保存されています。ログアウトすると再度ログインが必要です。",
     "cancel": "キャンセル",
     "help": "ヘルプ"
+  },
+  "inquiryList": {
+    "title": "進捗確認",
+    "uploadButton": "＋ 新規アップロード",
+    "filterAll": "すべて",
+    "filterConfirming": "確認中",
+    "filterFinal": "確定済み",
+    "columnRequester": "依頼元企業",
+    "columnProjectName": "案件名",
+    "columnRequestedAt": "依頼日時",
+    "columnStatus": "状態",
+    "columnReview": "要確認",
+    "columnUpdatedAt": "最終更新",
+    "statusConfirming": "確認中",
+    "statusFinal": "確定済み",
+    "reviewCountUnit": "件",
+    "emptyTitleNone": "まだ引合がありません",
+    "emptyCta": "＋ 書類をアップロード",
+    "emptyTitleFiltered": "{{label}}の引合はありません",
+    "loadError": "引合一覧の取得に失敗しました"
   }
 }
