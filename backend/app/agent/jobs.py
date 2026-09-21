@@ -12,8 +12,8 @@ import json
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
-from app.agent import definition
 from app.agent.runner import AgentRunResult, run_agent
+from app.agent.spec import AgentSpec
 from app.agent.trace import TRACES_DIR, TraceRecorder
 
 
@@ -28,29 +28,35 @@ class AgentJob:
 _jobs: dict[str, AgentJob] = {}
 
 
-def start_agent_job(prompt: str, *, scenario: str | None = None) -> str:
+def start_agent_job(
+    prompt: str, spec: AgentSpec, *, scenario: str | None = None
+) -> str:
     """エージェントをバックグラウンドで起動し、run_id を即返す。"""
-    trace = TraceRecorder(scenario=scenario)  # 先に作る → run_id が確定 & 外側発火も記録可能
+    trace = TraceRecorder(
+        scenario=scenario
+    )  # 先に作る → run_id が確定 & 外側発火も記録可能
     job = AgentJob(
         run_id=trace.run_id, status="running", started_at=datetime.now(UTC).isoformat()
     )
     _jobs[trace.run_id] = job
-    asyncio.create_task(_execute(job, prompt, trace))
+    asyncio.create_task(_execute(job, prompt, spec, trace))
     return trace.run_id
 
 
-async def _execute(job: AgentJob, prompt: str, trace: TraceRecorder) -> None:
+async def _execute(
+    job: AgentJob, prompt: str, spec: AgentSpec, trace: TraceRecorder
+) -> None:
     try:
         # 外側タイムアウト: 内側（runner）が機能しなかったときの最後の砦
         result = await asyncio.wait_for(
-            run_agent(prompt, trace=trace), definition.OUTER_TIMEOUT_S
+            run_agent(prompt, spec, trace=trace), spec.outer_timeout_s
         )
         job.result = result
         job.status = result.stop_reason
     except TimeoutError:
         # 外側発火 = 内側の異常（ハング）。トレースに記録し、バグとして調査する
         trace.record_result(
-            "outer_timeout", detail=f"{definition.OUTER_TIMEOUT_S}s 超過（内側が機能せず）"
+            "outer_timeout", detail=f"{spec.outer_timeout_s}s 超過（内側が機能せず）"
         )
         job.status = "outer_timeout"
     except Exception as e:  # 予期しない例外もジョブとトレースに残す

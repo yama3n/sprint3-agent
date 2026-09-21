@@ -15,7 +15,9 @@ TRACES_DIR = Path(__file__).resolve().parents[2] / "traces"
 
 class TraceRecorder:
     def __init__(self, scenario: str | None = None) -> None:
-        self.run_id = datetime.now(UTC).strftime("%Y%m%d-%H%M%S-") + uuid.uuid4().hex[:8]
+        self.run_id = (
+            datetime.now(UTC).strftime("%Y%m%d-%H%M%S-") + uuid.uuid4().hex[:8]
+        )
         self.path = TRACES_DIR / f"{self.run_id}.jsonl"
         self.step = 0
         self._start = time.monotonic()
@@ -44,9 +46,13 @@ class TraceRecorder:
 
     def record_tool_use(self, name: str, tool_input: dict) -> None:
         """ツール実行: 使用ツールが agent-plan.md ツール一覧の範囲内かの検証に使う"""
-        self._write({"type": "tool_use", "step": self.step, "tool": name, "input": tool_input})
+        self._write(
+            {"type": "tool_use", "step": self.step, "tool": name, "input": tool_input}
+        )
 
-    def record_observation(self, tool_name: str, content: object, is_error: bool) -> None:
+    def record_observation(
+        self, tool_name: str, content: object, is_error: bool
+    ) -> None:
         """観察: ツール結果"""
         self._write(
             {

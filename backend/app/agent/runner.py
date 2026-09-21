@@ -1,12 +1,16 @@
 """エージェント実行ループ。
 
 タイムアウトの責務分担:
-- 内側（このファイル）: INNER_TIMEOUT_S（実行全体）と INACTIVITY_TIMEOUT_S（無応答=ハング検知）。
-  発火したらトレースに stop_reason を記録して整然と終了する。agent-plan.md の「強制停止」に対応。
-- 外側（jobs.py）: OUTER_TIMEOUT_S。内側が機能しなかった場合（SDK サブプロセスの
+- 内側（このファイル）: spec.inner_timeout_s（実行全体）と spec.inactivity_timeout_s（無応答=
+  ハング検知）。発火したらトレースに stop_reason を記録して整然と終了する。
+  agent-plan.md の「強制停止」に対応。
+- 外側（jobs.py）: spec.outer_timeout_s。内側が機能しなかった場合（SDK サブプロセスの
   ハング・キャンセル不能など）の最後の砦。発火 = 内側の異常であり、バグとして扱う。
 
 直接呼ばない: 起動は必ず jobs.start_agent_job() 経由（バックグラウンド実行 + 外側タイムアウト）。
+
+AGENT-01/AGENT-02はそれぞれ固有の AgentSpec（system_prompt/timeouts/tools/hooks）を持つ。
+このファイルはどちらのエージェントかを知らず、spec の値だけを見て動作する。
 """
 
 import asyncio
@@ -23,8 +27,7 @@ from claude_agent_sdk import (
     query,
 )
 
-from app.agent import definition
-from app.agent.tools import ALLOWED_TOOL_NAMES, agent_server
+from app.agent.spec import AgentSpec
 from app.agent.trace import TraceRecorder
 
 
@@ -37,19 +40,30 @@ class AgentRunResult:
     cost_usd: float | None = None
 
 
-def _build_options() -> ClaudeAgentOptions:
-    return ClaudeAgentOptions(
-        system_prompt=definition.SYSTEM_PROMPT,
-        mcp_servers={"app": agent_server},
-        allowed_tools=ALLOWED_TOOL_NAMES,
-        max_turns=definition.MAX_TURNS,
-        # ガードレール（PreToolUse hook）は build-loop のエージェントスライスで
-        # agent-plan.md をもとに追加する
+def _build_options(spec: AgentSpec) -> ClaudeAgentOptions:
+    options_kwargs: dict = dict(
+        system_prompt=spec.system_prompt,
+        mcp_servers={spec.mcp_label: spec.mcp_server},
+        # tools: ロースター自体をこのエージェントのMCPツールのみに限定する（Bash/Read/Write等の
+        # 組み込みツールを一切使わせない）。allowed_tools は権限面（確認省略対象）の指定であり、
+        # tools を指定しない場合は既定で組み込みツール一式が使える状態になってしまうため必須。
+        # agent-development.md「してはいけない操作はhooks/disallowed_toolsで強制する」に対応する
+        # 構造的なガードレール（AGENT-01実機評価でBash/Readが使われた事象を受けて追加）
+        tools=spec.allowed_tool_names,
+        allowed_tools=spec.allowed_tool_names,
+        max_turns=spec.max_turns,
     )
+    if spec.hooks:
+        options_kwargs["hooks"] = spec.hooks
+    return ClaudeAgentOptions(**options_kwargs)
 
 
 async def run_agent(
-    prompt: str, *, scenario: str | None = None, trace: TraceRecorder | None = None
+    prompt: str,
+    spec: AgentSpec,
+    *,
+    scenario: str | None = None,
+    trace: TraceRecorder | None = None,
 ) -> AgentRunResult:
     """エージェントを1回実行し、全メッセージをトレースに記録する。
 
@@ -62,20 +76,21 @@ async def run_agent(
 
     try:
         # 内側タイムアウト: 実行全体の上限
-        async with asyncio.timeout(definition.INNER_TIMEOUT_S):
-            stream = query(prompt=prompt, options=_build_options()).__aiter__()
+        async with asyncio.timeout(spec.inner_timeout_s):
+            stream = query(prompt=prompt, options=_build_options(spec)).__aiter__()
             while True:
                 try:
-                    # ハング検知: メッセージ間の無応答が INACTIVITY_TIMEOUT_S を超えたら停止
+                    # ハング検知: メッセージ間の無応答が inactivity_timeout_s を超えたら停止
                     message = await asyncio.wait_for(
-                        stream.__anext__(), definition.INACTIVITY_TIMEOUT_S
+                        stream.__anext__(), spec.inactivity_timeout_s
                     )
                 except StopAsyncIteration:
                     break
                 except TimeoutError:
                     result.stop_reason = "inactivity_timeout"
                     trace.record_result(
-                        "inactivity_timeout", detail=f"{definition.INACTIVITY_TIMEOUT_S}s 無応答"
+                        "inactivity_timeout",
+                        detail=f"{spec.inactivity_timeout_s}s 無応答",
                     )
                     return result
 
@@ -89,11 +104,13 @@ async def run_agent(
                     for block in getattr(message, "content", []) or []:
                         if isinstance(block, ToolResultBlock):
                             trace.record_observation(
-                                tool_name="", content=block.content, is_error=block.is_error
+                                tool_name="",
+                                content=block.content,
+                                is_error=block.is_error,
                             )
                 elif isinstance(message, ResultMessage):
                     completed = not message.is_error
-                    if message.num_turns and message.num_turns >= definition.MAX_TURNS:
+                    if message.num_turns and message.num_turns >= spec.max_turns:
                         result.stop_reason = "max_turns"
                     else:
                         result.stop_reason = "completed" if completed else "failed"
@@ -108,5 +125,5 @@ async def run_agent(
     except TimeoutError:
         # 内側タイムアウト発火（agent-plan.md の強制停止）。記録してから返す。
         result.stop_reason = "inner_timeout"
-        trace.record_result("inner_timeout", detail=f"{definition.INNER_TIMEOUT_S}s 超過")
+        trace.record_result("inner_timeout", detail=f"{spec.inner_timeout_s}s 超過")
     return result
