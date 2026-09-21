@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: inquiry_agent_postgres
+    environment:
+      POSTGRES_USER: inquiry_agent
+      POSTGRES_PASSWORD: devpassword
+      POSTGRES_DB: inquiry_agent_db
+    ports:
+      # ホスト側 5432 は他のworktree/プロジェクトのPostgreSQLと衝突するため 5433 を使用
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U inquiry_agent"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
