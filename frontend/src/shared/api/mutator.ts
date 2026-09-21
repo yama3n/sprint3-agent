@@ -64,7 +64,11 @@ export const customInstance = async <T>(
     throw new Error("Authentication failed");
   }
 
-  const data = await response.json();
+  // 204 No Content（ログアウト等）や空ボディでも落ちないようにする
+  const rawBody = [204, 205, 304].includes(response.status)
+    ? null
+    : await response.text();
+  const data = rawBody ? JSON.parse(rawBody) : undefined;
 
   return {
     data,

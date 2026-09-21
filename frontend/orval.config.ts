@@ -12,12 +12,16 @@ export default {
       // TanStack Query のフックを生成（features/*/api.ts が wrap して使う）
       client: 'react-query',
       httpClient: 'fetch',
-      mutator: {
-        path: './src/shared/api/mutator.ts',
-        name: 'customInstance',
-      },
       clean: true,
       prettier: true,
+      // mutator は output 直下ではなく output.override 配下でないと無視され、
+      // 生成コードが素の fetch() を呼んでしまう（Authorizationヘッダが付かない）
+      override: {
+        mutator: {
+          path: './src/shared/api/mutator.ts',
+          name: 'customInstance',
+        },
+      },
     },
   },
 }
