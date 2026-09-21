@@ -34,6 +34,33 @@ describe("AppShell", () => {
     expect(screen.getByText("新規アップロード")).toBeInTheDocument();
     expect(screen.getByText("田中 太郎")).toBeInTheDocument();
     expect(screen.getByText("content")).toBeInTheDocument();
+    expect(screen.getByText("引合書整理エージェント")).toHaveStyle({
+      whiteSpace: "nowrap",
+    });
+    expect(screen.getByRole("button", { name: "進捗確認" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    expect(
+      screen.getByRole("button", { name: "新規アップロード" }),
+    ).not.toHaveAttribute("aria-current");
+  });
+
+  it("marks only the upload navigation active on /inquiries/upload", () => {
+    (usePathname as jest.Mock).mockReturnValue("/inquiries/upload");
+
+    render(
+      <AppShell>
+        <div>content</div>
+      </AppShell>,
+    );
+
+    expect(
+      screen.getByRole("button", { name: "進捗確認" }),
+    ).not.toHaveAttribute("aria-current");
+    expect(
+      screen.getByRole("button", { name: "新規アップロード" }),
+    ).toHaveAttribute("aria-current", "page");
   });
 
   it("shows a toast instead of navigating for placeholder nav items", async () => {
@@ -73,8 +100,16 @@ describe("AppShell", () => {
 
     await user.click(screen.getByRole("button", { name: "ログアウト" }));
     expect(screen.getByText("ログアウトしますか？")).toBeInTheDocument();
+    expect(
+      screen.getByText("未確定の変更は保存されています"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("ログアウトすると再度ログインが必要です"),
+    ).toBeInTheDocument();
 
-    const dialogLogoutButtons = screen.getAllByRole("button", { name: "ログアウト" });
+    const dialogLogoutButtons = screen.getAllByRole("button", {
+      name: "ログアウト",
+    });
     await user.click(dialogLogoutButtons[dialogLogoutButtons.length - 1]);
 
     expect(useAuthStore.getState().token).toBeNull();

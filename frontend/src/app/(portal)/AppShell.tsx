@@ -77,8 +77,20 @@ export function AppShell({ children }: { children: ReactNode }) {
     },
   ];
 
+  function isNavActive(item: NavItem): boolean {
+    if (!item.href || !pathname) return false;
+    if (item.key === "upload") return pathname === "/inquiries/upload";
+    if (item.key === "inquiries") {
+      return (
+        pathname === "/inquiries" ||
+        (pathname.startsWith("/inquiries/") && pathname !== "/inquiries/upload")
+      );
+    }
+    return pathname === item.href;
+  }
+
   const breadcrumb =
-    navItems.find((item) => item.href && pathname?.startsWith(item.href))?.label ??
+    navItems.find((item) => isNavActive(item))?.label ??
     t("shell.navInquiries");
 
   function handleNavClick(item: NavItem) {
@@ -102,7 +114,13 @@ export function AppShell({ children }: { children: ReactNode }) {
     : tokens.layout.sidebarWidth;
 
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "background.default" }}>
+    <Box
+      sx={{
+        display: "flex",
+        minHeight: "100vh",
+        bgcolor: "background.default",
+      }}
+    >
       <Box
         component="aside"
         sx={{
@@ -130,7 +148,16 @@ export function AppShell({ children }: { children: ReactNode }) {
             {!collapsed ? (
               <>
                 <DescriptionIcon fontSize="small" />
-                <Typography sx={{ fontSize: 13, fontWeight: 600, lineHeight: 1.3, flex: 1 }}>
+                <Typography
+                  sx={{
+                    fontSize: 13,
+                    fontWeight: 600,
+                    lineHeight: 1.3,
+                    letterSpacing: "-0.01em",
+                    whiteSpace: "nowrap",
+                    flexShrink: 0,
+                  }}
+                >
                   {t("shell.brandName")}
                 </Typography>
               </>
@@ -143,7 +170,10 @@ export function AppShell({ children }: { children: ReactNode }) {
               >
                 <ChevronLeftIcon
                   fontSize="small"
-                  sx={{ transform: collapsed ? "rotate(180deg)" : "none", transition: "transform .18s" }}
+                  sx={{
+                    transform: collapsed ? "rotate(180deg)" : "none",
+                    transition: "transform .18s",
+                  }}
                 />
               </IconButton>
             </Tooltip>
@@ -151,30 +181,44 @@ export function AppShell({ children }: { children: ReactNode }) {
 
           <List sx={{ mt: 0.5 }} component="nav">
             {navItems.map((item) => {
-              const active = item.href ? pathname?.startsWith(item.href) : false;
+              const active = isNavActive(item);
               return (
-                <Tooltip key={item.key} title={collapsed ? item.label : ""} placement="right">
+                <Tooltip
+                  key={item.key}
+                  title={collapsed ? item.label : ""}
+                  placement="right"
+                >
                   <ListItemButton
                     onClick={() => handleNavClick(item)}
                     selected={active}
+                    aria-current={active ? "page" : undefined}
                     sx={{
                       borderRadius: 1,
                       mb: 0.25,
-                      color: item.disabled ? tokens.colors.sidebar.textDim : tokens.colors.sidebar.text,
+                      color: item.disabled
+                        ? tokens.colors.sidebar.textDim
+                        : tokens.colors.sidebar.text,
                       justifyContent: collapsed ? "center" : "flex-start",
                       gap: 1.25,
-                      "&:hover": { bgcolor: tokens.colors.sidebar.hoverBg, color: tokens.colors.sidebar.textHover },
+                      "&:hover": {
+                        bgcolor: tokens.colors.sidebar.hoverBg,
+                        color: tokens.colors.sidebar.textHover,
+                      },
                       "&.Mui-selected": {
                         bgcolor: tokens.colors.sidebar.activeBg,
                         color: tokens.colors.sidebar.textStrong,
                         fontWeight: 600,
                       },
-                      "&.Mui-selected:hover": { bgcolor: tokens.colors.sidebar.activeBg },
+                      "&.Mui-selected:hover": {
+                        bgcolor: tokens.colors.sidebar.activeBg,
+                      },
                     }}
                   >
                     {item.icon}
                     {!collapsed ? (
-                      <Typography sx={{ fontSize: 13.5, fontWeight: "inherit" }}>
+                      <Typography
+                        sx={{ fontSize: 13.5, fontWeight: "inherit" }}
+                      >
                         {item.label}
                       </Typography>
                     ) : null}
@@ -185,9 +229,16 @@ export function AppShell({ children }: { children: ReactNode }) {
           </List>
         </Box>
 
-        <Box sx={{ p: "12px 12px 16px", borderTop: `1px solid ${tokens.colors.sidebar.border}` }}>
+        <Box
+          sx={{
+            p: "12px 12px 16px",
+            borderTop: `1px solid ${tokens.colors.sidebar.border}`,
+          }}
+        >
           {!collapsed ? (
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}>
+            <Box
+              sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}
+            >
               <Box
                 sx={{
                   width: 28,
@@ -206,7 +257,13 @@ export function AppShell({ children }: { children: ReactNode }) {
                 {user?.displayName?.[0] ?? ""}
               </Box>
               <Box sx={{ minWidth: 0 }}>
-                <Typography sx={{ fontSize: 12.5, color: tokens.colors.sidebar.textStrong, fontWeight: 600 }}>
+                <Typography
+                  sx={{
+                    fontSize: 12.5,
+                    color: tokens.colors.sidebar.textStrong,
+                    fontWeight: 600,
+                  }}
+                >
                   {user?.displayName}
                 </Typography>
                 <Typography
@@ -232,17 +289,26 @@ export function AppShell({ children }: { children: ReactNode }) {
                 color: tokens.colors.sidebar.text,
                 justifyContent: collapsed ? "center" : "flex-start",
                 gap: 1,
-                "&:hover": { bgcolor: tokens.colors.sidebar.hoverBg, color: tokens.colors.sidebar.textStrong },
+                "&:hover": {
+                  bgcolor: tokens.colors.sidebar.hoverBg,
+                  color: tokens.colors.sidebar.textStrong,
+                },
               }}
             >
               <LogoutIcon fontSize="small" />
-              {!collapsed ? <Typography sx={{ fontSize: 13 }}>{t("shell.logout")}</Typography> : null}
+              {!collapsed ? (
+                <Typography sx={{ fontSize: 13 }}>
+                  {t("shell.logout")}
+                </Typography>
+              ) : null}
             </ListItemButton>
           </Tooltip>
         </Box>
       </Box>
 
-      <Box sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
+      <Box
+        sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}
+      >
         <Box
           component="header"
           sx={{
@@ -254,7 +320,13 @@ export function AppShell({ children }: { children: ReactNode }) {
             bgcolor: tokens.colors.surface,
           }}
         >
-          <Typography sx={{ fontSize: 13.5, color: tokens.colors.text.secondary, fontWeight: 600 }}>
+          <Typography
+            sx={{
+              fontSize: 13.5,
+              color: tokens.colors.text.secondary,
+              fontWeight: 600,
+            }}
+          >
             {breadcrumb}
           </Typography>
         </Box>
@@ -281,13 +353,32 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <ToastHost />
 
-      <Dialog open={logoutDialogOpen} onClose={() => setLogoutDialogOpen(false)}>
+      <Dialog
+        open={logoutDialogOpen}
+        onClose={() => setLogoutDialogOpen(false)}
+        PaperProps={{ sx: { minWidth: 460 } }}
+      >
         <DialogTitle>{t("shell.logoutConfirmTitle")}</DialogTitle>
         <DialogContent>
-          <DialogContentText>{t("shell.logoutConfirmBody")}</DialogContentText>
+          <DialogContentText component="div">
+            <Typography
+              component="span"
+              sx={{ display: "block", whiteSpace: "nowrap" }}
+            >
+              {t("shell.logoutConfirmBodyLine1")}
+            </Typography>
+            <Typography
+              component="span"
+              sx={{ display: "block", whiteSpace: "nowrap" }}
+            >
+              {t("shell.logoutConfirmBodyLine2")}
+            </Typography>
+          </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setLogoutDialogOpen(false)}>{t("shell.cancel")}</Button>
+          <Button onClick={() => setLogoutDialogOpen(false)}>
+            {t("shell.cancel")}
+          </Button>
           <Button onClick={handleLogout} variant="contained">
             {t("shell.logout")}
           </Button>

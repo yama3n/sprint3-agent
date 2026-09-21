@@ -16,7 +16,8 @@ jest.mock("@/shared/api/generated/inquiries", () => ({
 }));
 
 const mockCreate = useCreateInquiryApiV1InquiriesPost as jest.Mock;
-const mockStatus = useGetAgentStatusApiV1InquiriesInquiryIdAgentStatusGet as jest.Mock;
+const mockStatus =
+  useGetAgentStatusApiV1InquiriesInquiryIdAgentStatusGet as jest.Mock;
 
 function file(name: string): File {
   return new File(["x"], name, { type: "application/octet-stream" });
@@ -36,7 +37,10 @@ describe("NewUploadPage (SCR-02)", () => {
 
   it("disables the upload button until a file is selected", () => {
     render(<NewUploadPage />);
-    expect(screen.getByRole("button", { name: "アップロード開始" })).toBeDisabled();
+    expect(screen.getByTestId("upload-form")).toHaveStyle({ width: "100%" });
+    expect(
+      screen.getByRole("button", { name: "アップロード開始" }),
+    ).toBeDisabled();
   });
 
   it("rejects unsupported file types inline and keeps supported ones", async () => {
@@ -49,11 +53,15 @@ describe("NewUploadPage (SCR-02)", () => {
     ]);
 
     expect(
-      await screen.findByText("「contract.docx」は対応していません（Excel／PDF／メールのみ）"),
+      await screen.findByText(
+        "「contract.docx」は対応していません（Excel／PDF／メールのみ）",
+      ),
     ).toBeInTheDocument();
     expect(screen.getByText("order.xlsx")).toBeInTheDocument();
     expect(screen.queryByText("contract.docx")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "アップロード開始" })).toBeEnabled();
+    expect(
+      screen.getByRole("button", { name: "アップロード開始" }),
+    ).toBeEnabled();
   });
 
   it("uploads selected files and starts polling", async () => {
@@ -64,20 +72,29 @@ describe("NewUploadPage (SCR-02)", () => {
     render(<NewUploadPage />);
     const user = userEvent.setup();
 
-    await user.upload(screen.getByLabelText("ファイルを選択"), [file("order.xlsx")]);
+    await user.upload(screen.getByLabelText("ファイルを選択"), [
+      file("order.xlsx"),
+    ]);
     await user.click(screen.getByRole("button", { name: "アップロード開始" }));
 
     await waitFor(() => expect(mutateAsync).toHaveBeenCalled());
     const call = mutateAsync.mock.calls[0][0];
     expect(call.data.files).toHaveLength(1);
-    await waitFor(() => expect(mockStatus).toHaveBeenCalledWith(42, expect.anything()));
+    await waitFor(() =>
+      expect(mockStatus).toHaveBeenCalledWith(42, expect.anything()),
+    );
   });
 
   it("shows the agent progress label reported by agent-status", async () => {
     mockStatus.mockReturnValue({
       data: {
         status: 200,
-        data: { stage: "extracting", progress_percent: 40, status: "running", error_message: null },
+        data: {
+          stage: "extracting",
+          progress_percent: 40,
+          status: "running",
+          error_message: null,
+        },
       },
     });
     mutateAsync.mockResolvedValue({
@@ -87,7 +104,9 @@ describe("NewUploadPage (SCR-02)", () => {
     render(<NewUploadPage />);
     const user = userEvent.setup();
 
-    await user.upload(screen.getByLabelText("ファイルを選択"), [file("order.xlsx")]);
+    await user.upload(screen.getByLabelText("ファイルを選択"), [
+      file("order.xlsx"),
+    ]);
     await user.click(screen.getByRole("button", { name: "アップロード開始" }));
 
     expect(await screen.findByText("AI解析中…")).toBeInTheDocument();
@@ -113,9 +132,13 @@ describe("NewUploadPage (SCR-02)", () => {
     render(<NewUploadPage />);
     const user = userEvent.setup();
 
-    await user.upload(screen.getByLabelText("ファイルを選択"), [file("bad.pdf")]);
+    await user.upload(screen.getByLabelText("ファイルを選択"), [
+      file("bad.pdf"),
+    ]);
     await user.click(screen.getByRole("button", { name: "アップロード開始" }));
 
-    expect(await screen.findByText("全ファイルのパースに失敗しました")).toBeInTheDocument();
+    expect(
+      await screen.findByText("全ファイルのパースに失敗しました"),
+    ).toBeInTheDocument();
   });
 });

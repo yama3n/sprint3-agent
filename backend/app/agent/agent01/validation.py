@@ -28,20 +28,39 @@ def _validate_candidate(candidate: dict, valid_field_ids: list[str]) -> None:
         raise ValueError(f"不正なsource_type: {candidate['source_type']}")
 
 
-def build_case_fields(candidates: list[dict]) -> dict[str, list[dict]]:
+def build_case_fields(
+    candidates: list[dict], existing: dict[str, list[dict]] | None = None
+) -> dict[str, list[dict]]:
     """A項目（案件全体、14固定項目）の候補値配列を組み立てる。
-    記載が見つからなかった項目もキー自体は必須のため、全14項目を空配列で初期化する。"""
-    result: dict[str, list[dict]] = {field_id: [] for field_id in CASE_FIELD_IDS}
+
+    記載が見つからなかった項目もキー自体は必須のため、全14項目を空配列で初期化する。
+    existing を渡すと追記（マージ）する — 項目数が多い場合にツール呼び出しを分割できるようにするため
+    （1回のツール呼び出しで巨大なJSONを生成させると、生成中に無応答とみなされる実測事象があった）。
+    """
+    result: dict[str, list[dict]] = {
+        field_id: list(existing.get(field_id, [])) if existing else []
+        for field_id in CASE_FIELD_IDS
+    }
     for candidate in candidates:
         _validate_candidate(candidate, CASE_FIELD_IDS)
         result[candidate["field_id"]].append(candidate)
     return result
 
 
-def build_item_fields(items: list[dict]) -> dict[int, dict[str, list[dict]]]:
+def build_item_fields(
+    items: list[dict], existing: dict[int, dict[str, list[dict]]] | None = None
+) -> dict[int, dict[str, list[dict]]]:
     """B項目（品目ごと、8固定項目）の候補値配列を組み立てる。
-    items: [{"item_no": int, "candidates": [ExtractionCandidate, ...]}]"""
-    result: dict[int, dict[str, list[dict]]] = {}
+
+    items: [{"item_no": int, "candidates": [ExtractionCandidate, ...]}]
+    existing を渡すと品目単位で追記（マージ）する（分割呼び出し対応）。
+    """
+    result: dict[int, dict[str, list[dict]]] = {
+        item_no: {
+            field_id: list(fields.get(field_id, [])) for field_id in ITEM_FIELD_IDS
+        }
+        for item_no, fields in (existing or {}).items()
+    }
     for item in items:
         item_no = item["item_no"]
         bucket = result.setdefault(

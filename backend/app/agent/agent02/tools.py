@@ -12,6 +12,7 @@
 """
 
 import json
+import re
 from datetime import UTC, datetime
 from typing import Any
 
@@ -249,6 +250,22 @@ def _resolve_confirmed_by(field_state: FieldState) -> str | None:
     return "ai"
 
 
+def _parse_inquiry_date(value: str | None) -> datetime | None:
+    """A項目の引合日を一覧・詳細ヘッダー用datetimeへ正規化する。"""
+    if not value:
+        return None
+    normalized = value.strip()
+    japanese = re.fullmatch(r"(\d{4})年\s*(\d{1,2})月\s*(\d{1,2})日", normalized)
+    if japanese:
+        year, month, day = map(int, japanese.groups())
+        return datetime(year, month, day, tzinfo=UTC)
+    try:
+        parsed = datetime.fromisoformat(normalized.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return parsed if parsed.tzinfo is not None else parsed.replace(tzinfo=UTC)
+
+
 async def _persist_field(
     session,
     field_def_id_by_field_id: dict[str, int],
@@ -342,6 +359,9 @@ async def save_structured_result(args: dict[str, Any]) -> dict[str, Any]:
         return _error("完了条件を満たしていません: " + " / ".join(errors))
 
     async with AsyncSessionLocal() as session:
+        inquiry = await InquiryRepository(session).get(inquiry_id)
+        if inquiry is None:
+            return _error("INQUIRY_NOT_FOUND")
         field_def_repo = FieldDefinitionRepository(session)
         field_def_id_by_field_id = {
             f.field_id: f.id for f in await field_def_repo.list()
@@ -361,6 +381,17 @@ async def save_structured_result(args: dict[str, Any]) -> dict[str, Any]:
                     existing_case_or_item=existing_case,
                 )
 
+        # inquiriesの2列は一覧表示用キャッシュ。正本であるA項目から一方向に同期する。
+        requester = agent_state.fields.get(("requester", None))
+        project_name = agent_state.fields.get(("project_name", None))
+        if requester is not None:
+            inquiry.requester = requester.value
+        if project_name is not None:
+            inquiry.project_name = project_name.value
+        inquiry_date = agent_state.fields.get(("inquiry_date", None))
+        if inquiry_date is not None:
+            inquiry.requested_at = _parse_inquiry_date(inquiry_date.value)
+
         item_repo = InquiryItemRepository(session)
         existing_db_items = {
             item.item_no: item for item in await item_repo.list_by_inquiry(inquiry_id)
@@ -372,6 +403,7 @@ async def save_structured_result(args: dict[str, Any]) -> dict[str, Any]:
                     InquiryItem(inquiry_id=inquiry_id, item_no=item_no)
                 )
                 await session.flush()
+                existing_db_items[item_no] = db_item
             for (field_id, fn), field_state in agent_state.fields.items():
                 if fn == item_no:
                     await _persist_field(

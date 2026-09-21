@@ -236,6 +236,48 @@ async def test_extraction_result_repository_unconsumed(
     assert unconsumed.consumed_at is None
 
 
+async def test_extraction_result_repository_returns_latest_unconsumed(
+    db_session: AsyncSession, inquiry: Inquiry
+) -> None:
+    run_repo = AgentRunRepository(db_session)
+    first_run = await run_repo.add(
+        AgentRun(
+            inquiry_id=inquiry.id,
+            agent_name="agent01_extraction",
+            trigger="new_upload",
+            status="succeeded",
+            stage="completed",
+        )
+    )
+    second_run = await run_repo.add(
+        AgentRun(
+            inquiry_id=inquiry.id,
+            agent_name="agent01_extraction",
+            trigger="additional_upload",
+            status="succeeded",
+            stage="completed",
+        )
+    )
+    repo = ExtractionResultRepository(db_session)
+    first = await repo.add(
+        ExtractionResult(
+            inquiry_id=inquiry.id, agent_run_id=first_run.id, payload={"version": 1}
+        )
+    )
+    second = await repo.add(
+        ExtractionResult(
+            inquiry_id=inquiry.id, agent_run_id=second_run.id, payload={"version": 2}
+        )
+    )
+    await db_session.flush()
+
+    latest = await repo.get_unconsumed_by_inquiry(inquiry.id)
+
+    assert latest is not None
+    assert latest.id == second.id
+    assert latest.id != first.id
+
+
 async def test_parsed_document_repository(
     db_session: AsyncSession, inquiry: Inquiry
 ) -> None:

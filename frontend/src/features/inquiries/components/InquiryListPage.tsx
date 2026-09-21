@@ -1,10 +1,17 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import {
   Box,
   Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   Paper,
   Skeleton,
   Table,
@@ -15,12 +22,21 @@ import {
   Typography,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
-import { Badge } from "@/shared/ui";
+import { Badge, DeleteIconButton } from "@/shared/ui";
 import { tokens } from "@/shared/theme/tokens";
 import { formatDateTime } from "@/shared/lib/format-date";
 import { useInquiryListPage, type InquiryFilter } from "../hooks";
+import {
+  getInquiryListQueryKey,
+  useRemoveInquiry,
+  type InquiryListItem,
+} from "../api";
 
-const FILTER_TABS: { key: InquiryFilter; labelKey: string; countKey: "all" | "draft" | "final" }[] = [
+const FILTER_TABS: {
+  key: InquiryFilter;
+  labelKey: string;
+  countKey: "all" | "draft" | "final";
+}[] = [
   { key: "all", labelKey: "inquiryList.filterAll", countKey: "all" },
   { key: "draft", labelKey: "inquiryList.filterConfirming", countKey: "draft" },
   { key: "final", labelKey: "inquiryList.filterFinal", countKey: "final" },
@@ -29,19 +45,66 @@ const FILTER_TABS: { key: InquiryFilter; labelKey: string; countKey: "all" | "dr
 export function InquiryListPage() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { isLoading, isError, filter, setFilter, counts, visibleItems, emptyState } =
-    useInquiryListPage();
+  const queryClient = useQueryClient();
+  const [deleteTarget, setDeleteTarget] = useState<InquiryListItem | null>(null);
+  const [deleteError, setDeleteError] = useState(false);
+  const removeInquiry = useRemoveInquiry();
+  const {
+    isLoading,
+    isError,
+    filter,
+    setFilter,
+    counts,
+    visibleItems,
+    emptyState,
+  } = useInquiryListPage();
+
+  function closeDeleteDialog() {
+    if (!removeInquiry.isPending) {
+      setDeleteTarget(null);
+      setDeleteError(false);
+    }
+  }
+
+  function confirmDelete() {
+    if (!deleteTarget) return;
+
+    setDeleteError(false);
+    removeInquiry.mutate(
+      { inquiryId: deleteTarget.id },
+      {
+        onSuccess: async (response) => {
+          if (response.status !== 204) {
+            setDeleteError(true);
+            return;
+          }
+          setDeleteTarget(null);
+          await queryClient.invalidateQueries({
+            queryKey: getInquiryListQueryKey(),
+          });
+        },
+        onError: () => setDeleteError(true),
+      },
+    );
+  }
 
   return (
     <Box>
-      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2 }}>
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          mb: 2,
+        }}
+      >
         <Typography variant="h1" sx={{ fontSize: 22, fontWeight: 700 }}>
           {t("inquiryList.title")}
         </Typography>
         <Button
           variant="contained"
-          startIcon={<AddIcon />}
           onClick={() => router.push("/inquiries/upload")}
+          sx={{ px: 2.5, minWidth: 148 }}
         >
           {t("inquiryList.uploadButton")}
         </Button>
@@ -79,7 +142,13 @@ export function InquiryListPage() {
       ) : emptyState.kind === "none" ? (
         <Paper
           variant="outlined"
-          sx={{ p: 6, display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}
+          sx={{
+            p: 6,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 2,
+          }}
         >
           <Typography sx={{ color: tokens.colors.text.secondary }}>
             {t("inquiryList.emptyTitleNone")}
@@ -115,6 +184,7 @@ export function InquiryListPage() {
                 <TableCell>{t("inquiryList.columnStatus")}</TableCell>
                 <TableCell>{t("inquiryList.columnReview")}</TableCell>
                 <TableCell>{t("inquiryList.columnUpdatedAt")}</TableCell>
+                <TableCell padding="checkbox" aria-label={t("inquiryList.delete")} />
               </TableRow>
             </TableHead>
             <TableBody>
@@ -146,7 +216,9 @@ export function InquiryListPage() {
                         variant="text"
                         onClick={(e) => {
                           e.stopPropagation();
-                          router.push(`/inquiries/${item.id}?inspector=overview`);
+                          router.push(
+                            `/inquiries/${item.id}?inspector=overview`,
+                          );
                         }}
                       >
                         {item.review_count}
@@ -159,12 +231,54 @@ export function InquiryListPage() {
                     )}
                   </TableCell>
                   <TableCell>{formatDateTime(item.updated_at)}</TableCell>
+                  <TableCell padding="checkbox" align="center">
+                    <DeleteIconButton
+                      ariaLabel={t("inquiryList.deleteAriaLabel", {
+                        code: item.inquiry_code,
+                      })}
+                      tooltip={t("inquiryList.delete")}
+                      disabled={removeInquiry.isPending}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setDeleteError(false);
+                        setDeleteTarget(item);
+                      }}
+                    />
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         </Paper>
       )}
+
+      <Dialog open={deleteTarget !== null} onClose={closeDeleteDialog}>
+        <DialogTitle>{t("inquiryList.deleteConfirmTitle")}</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            {t("inquiryList.deleteConfirmBody", {
+              code: deleteTarget?.inquiry_code ?? "",
+            })}
+          </DialogContentText>
+          {deleteError ? (
+            <Typography color="error.main" variant="body2" sx={{ mt: 2 }}>
+              {t("inquiryList.deleteError")}
+            </Typography>
+          ) : null}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeDeleteDialog} disabled={removeInquiry.isPending}>
+            {t("inquiryList.deleteCancel")}
+          </Button>
+          <Button
+            variant="contained"
+            onClick={confirmDelete}
+            disabled={removeInquiry.isPending}
+          >
+            {t("inquiryList.deleteConfirm")}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

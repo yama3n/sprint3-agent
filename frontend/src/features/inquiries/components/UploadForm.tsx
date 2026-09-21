@@ -7,7 +7,6 @@ import {
   Box,
   Button,
   Chip,
-  IconButton,
   LinearProgress,
   List,
   ListItem,
@@ -15,8 +14,8 @@ import {
   Typography,
 } from "@mui/material";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import { tokens } from "@/shared/theme/tokens";
+import { DeleteIconButton } from "@/shared/ui";
 
 interface UploadFormProps {
   title: string;
@@ -68,7 +67,7 @@ export function UploadForm({
   }
 
   return (
-    <Box sx={{ maxWidth: 760 }}>
+    <Box data-testid="upload-form" sx={{ width: "100%", minWidth: 0 }}>
       <Typography variant="h1" sx={{ fontSize: 22, fontWeight: 700, mb: 0.5 }}>
         {title}
       </Typography>
@@ -99,16 +98,24 @@ export function UploadForm({
           alignItems: "center",
           gap: 1,
           borderStyle: isDragOver ? "solid" : "dashed",
-          borderColor: isDragOver ? tokens.colors.main[500] : tokens.colors.borderStrong,
+          borderColor: isDragOver
+            ? tokens.colors.main[500]
+            : tokens.colors.borderStrong,
           bgcolor: isDragOver ? tokens.colors.surface2 : tokens.colors.surface,
         }}
       >
         <CloudUploadIcon sx={{ color: tokens.colors.text.primary }} />
-        <Typography sx={{ fontWeight: 600 }}>{t("upload.dropzoneMain")}</Typography>
+        <Typography sx={{ fontWeight: 600 }}>
+          {t("upload.dropzoneMain")}
+        </Typography>
         <Typography variant="body2" color="text.secondary">
           {t("upload.dropzoneOr")}
         </Typography>
-        <Button variant="outlined" color="inherit" onClick={() => inputRef.current?.click()}>
+        <Button
+          variant="outlined"
+          color="inherit"
+          onClick={() => inputRef.current?.click()}
+        >
           {t("upload.selectFiles")}
         </Button>
         <input
@@ -143,14 +150,11 @@ export function UploadForm({
               key={`${file.name}-${index}`}
               divider
               secondaryAction={
-                <IconButton
-                  edge="end"
-                  aria-label={`${file.name} ${t("upload.remove")}`}
+                <DeleteIconButton
+                  ariaLabel={`${file.name} ${t("upload.remove")}`}
                   onClick={() => onRemoveFile(index)}
                   disabled={isSubmitting}
-                >
-                  <DeleteOutlineIcon fontSize="small" />
-                </IconButton>
+                />
               }
             >
               <Typography variant="body2">{file.name}</Typography>
@@ -169,7 +173,9 @@ export function UploadForm({
         </Button>
 
         <Box sx={{ flex: 1 }}>
-          <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
+          <Box
+            sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}
+          >
             <Typography variant="caption" color="text.secondary">
               {progress ? progress.label : t("upload.waiting")}
             </Typography>

@@ -35,7 +35,8 @@ export const tokens = {
     },
     // サイドバー専用（黒〜チャコールのグラデーション上でのみ使う配色）
     sidebar: {
-      gradient: "linear-gradient(165deg, #1c1e21 0%, #131417 55%, #0b0c0d 100%)",
+      gradient:
+        "linear-gradient(165deg, #1c1e21 0%, #131417 55%, #0b0c0d 100%)",
       text: "#c7cbcf",
       textHover: "#f1f2f3", // hover時のわずかな強調（textStrongより一段暗い）
       textStrong: "#ffffff", // アクティブ項目・ユーザー名等（暗背景上の強調テキスト）
@@ -51,7 +52,8 @@ export const tokens = {
   typography: {
     fontHeading:
       '"Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", sans-serif',
-    fontBody: '"Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", sans-serif',
+    fontBody:
+      '"Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", sans-serif',
   },
   radius: 10,
   radiusSm: 6,
@@ -61,7 +63,7 @@ export const tokens = {
     2: "0 8px 24px rgba(15,16,18,0.14)",
   },
   layout: {
-    sidebarWidth: 224,
+    sidebarWidth: 252,
     sidebarWidthCollapsed: 64,
     headerHeight: 56,
   },

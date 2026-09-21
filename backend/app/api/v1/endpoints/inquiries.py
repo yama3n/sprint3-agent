@@ -37,6 +37,7 @@ from app.services.inquiry_service import (
     InquiryNotFoundError,
     ItemNotFoundError,
 )
+from app.services.inquiry_deletion_service import delete_inquiry
 from app.services.inquiry_upload_service import (
     NoFilesError,
     UnsupportedFileTypeError,
@@ -64,6 +65,21 @@ async def get_inquiry_detail(
 ) -> InquiryDetailResponse:
     try:
         return await inquiry_service.get_inquiry_detail(session, inquiry_id)
+    except InquiryNotFoundError:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND, detail="INQUIRY_NOT_FOUND"
+        ) from None
+
+
+@router.delete("/{inquiry_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def remove_inquiry(
+    inquiry_id: int,
+    session: AsyncSession = Depends(get_db),
+    _current_user: str = Depends(get_current_user),
+) -> None:
+    """引合と、その引合だけに属する関連データ・管理対象ファイルを削除する。"""
+    try:
+        await delete_inquiry(session, inquiry_id)
     except InquiryNotFoundError:
         raise HTTPException(
             status.HTTP_404_NOT_FOUND, detail="INQUIRY_NOT_FOUND"

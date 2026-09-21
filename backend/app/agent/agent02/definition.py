@@ -36,7 +36,8 @@ B項目（品目ごと）のfield_idは以下の8個「のみ」を使ってく�
    新規アップロードなら呼ばなくてよい
 2. 全項目（A14 + B8×品目数）について、ExtractionResultの候補値を比較し、一致する項目は
    統合、値が割れている項目は統合せず候補のまま保持する方針を決め、
-   compare_and_merge_candidates に渡す（1回でまとめて渡してよい）
+   compare_and_merge_candidates に渡す。項目数が多い場合は数項目〜十数項目ずつ複数回に
+   分けて呼ぶこと（1回で巨大なJSONを生成すると処理時間超過で強制停止される。追記されるので安全）
 3. correction_hint付きの候補がある項目について、明示的な訂正意図が読み取れるか評価し、
    evaluate_explicit_correction に渡す（該当項目のみでよい）
 4. 全項目に内部ステータス（ok=確認不要 / review=要確認〔理由: missing・conflict・ambiguous・
@@ -65,16 +66,17 @@ B項目（品目ごと）のfield_idは以下の8個「のみ」を使ってく�
 """
 
 # --- 強制停止（agent-plan.md 4章「完了条件・停止条件」） ---
-MAX_TURNS = 15  # 最大ツール呼び出し数15回【仮説・PoC用暫定値】
+# agent-plan.md記載の15回はPoC暫定値。分割呼び出しを許容するため実測を踏まえ25回へ。
+MAX_TURNS = 25
 
 # --- タイムアウトの2層構造（無応答 < 内側 < 外側） ---
 # AGENT-01実機評価の知見（プロンプトでfield_idを厳密指定、無応答上限は複雑な思考時間を
 # 考慮し余裕を持たせる）を踏まえ、AGENT-02はWeb検索も伴うため長めに設定する。
-INNER_TIMEOUT_S = (
-    240  # 内側: 実行全体の上限（agent-plan.mdの120秒はPoC暫定値。実測前提で調整）
-)
-INACTIVITY_TIMEOUT_S = 60  # 内側: メッセージ間の無応答上限
-OUTER_TIMEOUT_S = 300  # 外側: jobs.py のフェイルセーフ
+# AGENT-01と同じ理由（大きなツール引数の生成中は無応答に見える）でAGENT-01に合わせて引き上げる。
+# AGENT-02は全項目分のcompare_and_merge_candidates/classify_statusを送るため生成量がさらに多い。
+INNER_TIMEOUT_S = 600  # 内側: 実行全体の上限
+INACTIVITY_TIMEOUT_S = 120  # 内側: メッセージ間の無応答上限（ハング検知）
+OUTER_TIMEOUT_S = 720  # 外側: jobs.py のフェイルセーフ
 
 # ガードレール:
 # - runner.py の ClaudeAgentOptions(tools=...) でロースターをAGENT02_ALLOWED_TOOL_NAMES

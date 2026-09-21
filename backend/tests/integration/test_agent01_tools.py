@@ -179,8 +179,8 @@ async def test_extraction_pipeline_end_to_end_persists_extraction_result(
         assert "1" in saved.payload["item_fields"]  # JSON永続化でitem_noは文字列キー化
 
         run = await verify_session.get(AgentRun, agent_run.id)
-        assert run.status == "succeeded"
-        assert run.stage == "completed"
+        assert run.status == "running"
+        assert run.stage == "structuring"
         assert run.progress_percent == 55
 
 

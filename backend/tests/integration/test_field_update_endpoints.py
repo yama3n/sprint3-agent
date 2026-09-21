@@ -215,6 +215,10 @@ async def test_patch_case_field_manual_edit_without_candidate(
     assert body["status"] == "ok"
     assert body["is_web_supplemented"] is False
 
+    async with AsyncSessionLocal() as session:
+        inquiry = await InquiryRepository(session).get(inquiry_id)
+        assert inquiry.requester == "手入力した値"
+
 
 async def test_patch_case_field_empty_value_returns_to_review_missing(
     client: AsyncClient, db_session: AsyncSession, created_inquiry_ids: list[int]

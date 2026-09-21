@@ -118,3 +118,49 @@ def test_validate_extraction_result_flags_missing_case_field_key() -> None:
     errors = validate_extraction_result(result, expected_source_files=["a.pdf"])
 
     assert any("case_fields" in e for e in errors)
+
+
+def test_build_case_fields_merges_into_existing() -> None:
+    """分割呼び出し: 2回目の呼び出しで1回目の候補が失われない。"""
+    first = build_case_fields([_candidate("requester", "東西石油開発")])
+
+    second = build_case_fields([_candidate("project_name", "北海油田")], existing=first)
+
+    assert len(second["requester"]) == 1
+    assert len(second["project_name"]) == 1
+    assert set(second.keys()) == set(CASE_FIELD_IDS)
+    # existing 側は破壊しない（コピーして積む）
+    assert first["project_name"] == []
+
+
+def test_build_item_fields_merges_new_and_existing_items() -> None:
+    """分割呼び出し: 既存品目への追記と、新しい品目の追加が同時にできる。"""
+    first = build_item_fields(
+        [
+            {
+                "item_no": 1,
+                "candidates": [_candidate("grade", "L80", source_type="excel")],
+            }
+        ]
+    )
+
+    second = build_item_fields(
+        [
+            {
+                "item_no": 1,
+                "candidates": [_candidate("quantity", "240", source_type="excel")],
+            },
+            {
+                "item_no": 2,
+                "candidates": [_candidate("grade", "J55", source_type="excel")],
+            },
+        ],
+        existing=first,
+    )
+
+    assert set(second.keys()) == {1, 2}
+    assert len(second[1]["grade"]) == 1
+    assert len(second[1]["quantity"]) == 1
+    assert len(second[2]["grade"]) == 1
+    assert set(second[2].keys()) == set(ITEM_FIELD_IDS)
+    assert first[1]["quantity"] == []

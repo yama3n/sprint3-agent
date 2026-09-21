@@ -209,6 +209,12 @@ async def _apply_field_update(
         selected_candidate is not None and selected_candidate.source_type == "web"
     )
 
+    # inquiries.requester/project_name はSCR-01向けの非正規化キャッシュ。
+    if field_id in {"requester", "project_name"}:
+        inquiry = await InquiryRepository(session).get(row.inquiry_id)
+        if inquiry is not None:
+            setattr(inquiry, field_id, value or None)
+
     await session.commit()
 
     return FieldUpdateResponse(

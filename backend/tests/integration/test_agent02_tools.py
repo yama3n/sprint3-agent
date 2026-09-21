@@ -16,7 +16,7 @@ from app.agent.agent02.tools import (
 from app.core.db import AsyncSessionLocal
 from app.models.agent_run import AgentRun
 from app.models.field import FieldCandidate, InquiryField, InquiryItemField
-from app.models.inquiry import Inquiry, InquiryItem
+from app.models.inquiry import Inquiry, InquiryItem, InquiryNote
 from app.repositories.agent_run_repository import AgentRunRepository
 from app.repositories.field_definition_repository import FieldDefinitionRepository
 from app.repositories.inquiry_field_repository import InquiryFieldRepository
@@ -62,6 +62,9 @@ async def created_inquiry_ids():
         )
         await cleanup_session.execute(
             delete(InquiryItemField).where(InquiryItemField.id.in_(item_field_ids))
+        )
+        await cleanup_session.execute(
+            delete(InquiryNote).where(InquiryNote.inquiry_id.in_(ids))
         )
         await cleanup_session.execute(
             delete(InquiryItem).where(InquiryItem.id.in_(item_ids))
@@ -171,6 +174,27 @@ async def test_pipeline_saves_structured_result_for_new_upload(
     )
     assert item_merge.get("is_error") is not True
 
+    agent_state = state.get_state(inquiry_id)
+    agent_state.fields[("inquiry_date", None)].value = "2026年7月10日"
+    agent_state.case_notes = [
+        {
+            "content": "輸送条件は別途協議",
+            "source_type": "pdf",
+            "source_file": "a.pdf",
+            "source_location": "1ページ",
+        }
+    ]
+    agent_state.item_notes = {
+        1: [
+            {
+                "content": "品目注記",
+                "source_type": "pdf",
+                "source_file": "a.pdf",
+                "source_location": "2ページ",
+            }
+        ]
+    }
+
     classify_result = await classify_status.handler(
         _classify_all_missing(inquiry_id, 1)
     )
@@ -198,6 +222,17 @@ async def test_pipeline_saves_structured_result_for_new_upload(
         run = await verify_session.get(AgentRun, agent_run_id)
         assert run.status == "succeeded"
         assert run.progress_percent == 100
+
+        inquiry = await InquiryRepository(verify_session).get(inquiry_id)
+        assert inquiry.requester == "東西石油開発株式会社"
+        assert inquiry.requested_at.isoformat() == "2026-07-10T00:00:00+00:00"
+
+        notes = (
+            await verify_session.execute(
+                select(InquiryNote).where(InquiryNote.inquiry_id == inquiry_id)
+            )
+        ).scalars().all()
+        assert {note.content for note in notes} == {"輸送条件は別途協議", "品目注記"}
 
 
 async def test_confirmed_by_user_value_is_protected_on_conflicting_reupload(

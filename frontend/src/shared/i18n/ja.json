@@ -24,13 +24,14 @@
     "toggleSidebar": "サイドバーの開閉",
     "logout": "ログアウト",
     "logoutConfirmTitle": "ログアウトしますか？",
-    "logoutConfirmBody": "未確定の変更は保存されています。ログアウトすると再度ログインが必要です。",
+    "logoutConfirmBodyLine1": "未確定の変更は保存されています",
+    "logoutConfirmBodyLine2": "ログアウトすると再度ログインが必要です",
     "cancel": "キャンセル",
     "help": "ヘルプ"
   },
   "inquiryList": {
     "title": "進捗確認",
-    "uploadButton": "＋ 新規アップロード",
+    "uploadButton": "新規アップロード",
     "filterAll": "すべて",
     "filterConfirming": "確認中",
     "filterFinal": "確定済み",
@@ -46,7 +47,14 @@
     "emptyTitleNone": "まだ引合がありません",
     "emptyCta": "＋ 書類をアップロード",
     "emptyTitleFiltered": "{{label}}の引合はありません",
-    "loadError": "引合一覧の取得に失敗しました"
+    "loadError": "引合一覧の取得に失敗しました",
+    "delete": "削除",
+    "deleteAriaLabel": "{{code}} を削除",
+    "deleteConfirmTitle": "この引合を削除しますか？",
+    "deleteConfirmBody": "{{code}} と関連するファイル・抽出結果を削除します。この操作は取り消せません。",
+    "deleteCancel": "キャンセル",
+    "deleteConfirm": "削除する",
+    "deleteError": "引合の削除に失敗しました。時間をおいて再度お試しください"
   },
   "upload": {
     "title": "書類アップロード",

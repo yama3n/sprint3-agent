@@ -11,7 +11,6 @@
 """
 
 import json
-from datetime import UTC, datetime
 from typing import Any
 
 from claude_agent_sdk import create_sdk_mcp_server, tool
@@ -121,11 +120,14 @@ async def parse_eml(args: dict[str, Any]) -> dict[str, Any]:
 )
 async def extract_case_fields(args: dict[str, Any]) -> dict[str, Any]:
     inquiry_id = args["inquiry_id"]
+    extraction_state = state.get_state(inquiry_id)
     try:
-        case_fields = validation.build_case_fields(args["candidates"])
+        # 複数回に分けて呼ばれた場合は追記する（巨大な単一ペイロードを避けられるように）
+        case_fields = validation.build_case_fields(
+            args["candidates"], existing=extraction_state.case_fields
+        )
     except ValueError as e:
         return _error(str(e))
-    extraction_state = state.get_state(inquiry_id)
     extraction_state.case_fields = case_fields
     filled = [k for k, v in case_fields.items() if v]
     return _ok({"registered_field_ids": filled, "total_field_keys": len(case_fields)})
@@ -134,16 +136,20 @@ async def extract_case_fields(args: dict[str, Any]) -> dict[str, Any]:
 @tool(
     "extract_item_fields",
     "パース済みテキストから読み取ったB項目（品目ごと、8固定項目）の候補値と出典を品目単位で登録する。"
-    "値の判断はこのツールを呼ぶあなた自身が行うこと（このツールは検証・集約のみ行う）。",
+    "値の判断はこのツールを呼ぶあなた自身が行うこと（このツールは検証・集約のみ行う）。"
+    "品目数が多い場合は数品目ずつ複数回に分けて呼んでよい（呼び出しごとに追記される）。",
     EXTRACT_ITEM_FIELDS_SCHEMA,
 )
 async def extract_item_fields(args: dict[str, Any]) -> dict[str, Any]:
     inquiry_id = args["inquiry_id"]
+    extraction_state = state.get_state(inquiry_id)
     try:
-        item_fields = validation.build_item_fields(args["items"])
+        # 品目が多い場合に分割して呼べるよう、品目単位で追記する
+        item_fields = validation.build_item_fields(
+            args["items"], existing=extraction_state.item_fields
+        )
     except ValueError as e:
         return _error(str(e))
-    extraction_state = state.get_state(inquiry_id)
     extraction_state.item_fields = item_fields
     return _ok({"registered_items": list(item_fields.keys())})
 
@@ -224,11 +230,12 @@ async def emit_extraction_result(args: dict[str, Any]) -> dict[str, Any]:
         agent_run_repo = AgentRunRepository(session)
         agent_run = await agent_run_repo.get(agent_run_id)
         if agent_run is not None:
-            agent_run.status = "succeeded"
-            agent_run.stage = "completed"
-            # agent-plan.md stage表: AGENT-01完了（emit_extraction_result成功）で55%
+            # ここで completed にすると、オーケストレータがAGENT-02行を作るまでの間、
+            # status APIが全パイプライン完了と誤認する。引き渡し中は非終端状態を維持し、
+            # AGENT-01完了とAGENT-02開始をオーケストレータが同一commitで切り替える。
+            agent_run.status = "running"
+            agent_run.stage = "structuring"
             agent_run.progress_percent = 55
-            agent_run.finished_at = datetime.now(UTC)
         await session.commit()
 
     state.clear_state(inquiry_id)

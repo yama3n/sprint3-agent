@@ -15,6 +15,6 @@ class ExtractionResultRepository(BaseRepository[ExtractionResult]):
             select(ExtractionResult).where(
                 ExtractionResult.inquiry_id == inquiry_id,
                 ExtractionResult.consumed_at.is_(None),
-            )
+            ).order_by(ExtractionResult.id.desc()).limit(1)
         )
         return result.scalar_one_or_none()

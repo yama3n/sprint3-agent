@@ -12,11 +12,13 @@ AGENT-01分のagent_runsは inquiry_upload_service.create_inquiry_with_files/add
 
 import asyncio
 import json
+from datetime import UTC, datetime
 from typing import Literal
 
 from app.agent import jobs
 from app.agent.agent01.definition import AGENT01_SPEC
 from app.agent.agent02.definition import AGENT02_SPEC
+from app.agent.agent02 import state as agent02_state
 from app.core.db import AsyncSessionLocal
 from app.models.agent_run import AgentRun
 from app.models.inquiry import InquiryFile
@@ -105,8 +107,24 @@ async def _orchestrate(
             session
         ).get_unconsumed_by_inquiry(inquiry_id)
         if extraction_result is None:
+            await _mark_failed(agent_run_1_id, "missing_extraction_result")
             return
         extraction_payload = extraction_result.payload
+        extraction_result_id = extraction_result.id
+        # AGENT-01が意味抽出済みの補足情報はAGENT-02で再解釈せず、そのまま永続化状態へ渡す。
+        # JSONのitem_noキーはPostgres保存時に文字列化されているためintへ戻す。
+        verification_state = agent02_state.get_state(inquiry_id)
+        verification_state.case_notes = extraction_payload.get("case_notes", [])
+        verification_state.item_notes = {
+            int(item_no): notes
+            for item_no, notes in extraction_payload.get("item_notes", {}).items()
+        }
+        agent_run_1 = await AgentRunRepository(session).get(agent_run_1_id)
+        if agent_run_1 is not None:
+            agent_run_1.status = "succeeded"
+            agent_run_1.stage = "completed"
+            agent_run_1.progress_percent = 55
+            agent_run_1.finished_at = datetime.now(UTC)
         agent_run_2 = await AgentRunRepository(session).add(
             AgentRun(
                 inquiry_id=inquiry_id,
@@ -132,6 +150,14 @@ async def _orchestrate(
     job2 = await _await_job(run_id_2)
     if job2 is None or job2.status != "completed":
         await _mark_failed(agent_run_2_id, job2.status if job2 else "failed")
+        return
+
+    # AGENT-02が正本テーブルへの保存まで完了した時点で引き渡しデータを消費済みにする。
+    async with AsyncSessionLocal() as session:
+        consumed = await ExtractionResultRepository(session).get(extraction_result_id)
+        if consumed is not None:
+            consumed.consumed_at = datetime.now(UTC)
+            await session.commit()
 
 
 async def orchestrate_new_upload(
