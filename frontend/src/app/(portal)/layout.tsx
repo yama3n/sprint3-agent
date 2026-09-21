@@ -1,7 +1,11 @@
 import type { ReactNode } from "react";
 import { AuthGuard } from "@/features/auth";
+import { AppShell } from "./AppShell";
 
-// サイドバー等のApp Shellは Phase 2 で追加する。ここでは認証ガードのみ。
 export default function PortalLayout({ children }: { children: ReactNode }) {
-  return <AuthGuard>{children}</AuthGuard>;
+  return (
+    <AuthGuard>
+      <AppShell>{children}</AppShell>
+    </AuthGuard>
+  );
 }

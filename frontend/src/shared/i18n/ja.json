@@ -13,5 +13,19 @@
     "validationError": "メールアドレスとパスワードを入力してください",
     "invalidCredentials": "メールアドレスまたはパスワードが正しくありません",
     "genericError": "ログインに失敗しました。時間をおいて再度お試しください"
+  },
+  "shell": {
+    "brandName": "引合書整理エージェント",
+    "navInquiries": "進捗確認",
+    "navUpload": "新規アップロード",
+    "navQuotation": "見積書作成 / 発行",
+    "navSettings": "設定",
+    "comingSoon": "準備中の機能です",
+    "toggleSidebar": "サイドバーの開閉",
+    "logout": "ログアウト",
+    "logoutConfirmTitle": "ログアウトしますか？",
+    "logoutConfirmBody": "未確定の変更は保存されています。ログアウトすると再度ログインが必要です。",
+    "cancel": "キャンセル",
+    "help": "ヘルプ"
   }
 }
