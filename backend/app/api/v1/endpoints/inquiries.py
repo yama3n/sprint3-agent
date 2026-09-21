@@ -4,8 +4,13 @@ from typing import Literal
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from fastapi.responses import FileResponse
+
 from app.api.v1.schemas.inquiry import (
     AgentStatusResponse,
+    ConfirmResponse,
+    ExportRequest,
+    ExportResponse,
     FieldUpdateRequest,
     FieldUpdateResponse,
     InquiryDetailResponse,
@@ -18,6 +23,13 @@ from app.services import inquiry_service
 from app.services.agent_orchestrator import (
     orchestrate_additional_upload,
     orchestrate_new_upload,
+)
+from app.services.export_service import (
+    ExportNotFoundError,
+    UnsupportedExportFormatError,
+    confirm_inquiry,
+    create_export,
+    get_export_file,
 )
 from app.services.inquiry_service import (
     AgentStatusNotFoundError,
@@ -207,6 +219,67 @@ async def update_item_field(
         raise HTTPException(
             status.HTTP_404_NOT_FOUND, detail="FIELD_NOT_FOUND"
         ) from None
+
+
+@router.post("/{inquiry_id}/confirm", response_model=ConfirmResponse)
+async def confirm(
+    inquiry_id: int,
+    session: AsyncSession = Depends(get_db),
+    _current_user: str = Depends(get_current_user),
+) -> ConfirmResponse:
+    """FUNC-09 成果物確定。MVPではロック・確定解除・版管理は行わない（再確定も許容）。"""
+    try:
+        return await confirm_inquiry(session, inquiry_id)
+    except InquiryNotFoundError:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND, detail="INQUIRY_NOT_FOUND"
+        ) from None
+
+
+@router.post("/{inquiry_id}/exports", response_model=ExportResponse)
+async def create_inquiry_export(
+    inquiry_id: int,
+    payload: ExportRequest,
+    session: AsyncSession = Depends(get_db),
+    _current_user: str = Depends(get_current_user),
+) -> ExportResponse:
+    """FUNC-05 成果物生成（Scope 1はExcelのみ。Word/PDFはScope 2で400）。"""
+    try:
+        return await create_export(session, inquiry_id, payload.format)
+    except UnsupportedExportFormatError:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST, detail="UNSUPPORTED_FORMAT"
+        ) from None
+    except InquiryNotFoundError:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND, detail="INQUIRY_NOT_FOUND"
+        ) from None
+
+
+@router.get("/{inquiry_id}/exports/{export_id}/download")
+async def download_inquiry_export(
+    inquiry_id: int,
+    export_id: int,
+    session: AsyncSession = Depends(get_db),
+    _current_user: str = Depends(get_current_user),
+) -> FileResponse:
+    """FUNC-05 成果物のダウンロード（Content-Disposition: attachment）。"""
+    try:
+        path, file_name = await get_export_file(session, inquiry_id, export_id)
+    except InquiryNotFoundError:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND, detail="INQUIRY_NOT_FOUND"
+        ) from None
+    except ExportNotFoundError:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND, detail="EXPORT_NOT_FOUND"
+        ) from None
+
+    return FileResponse(
+        path,
+        filename=file_name,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
 
 
 # バックグラウンドタスクへの強参照を保持する（asyncio.create_task()の戻り値をどこにも

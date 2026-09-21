@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import {
+  Alert,
   Box,
   Button,
   Chip,
@@ -26,9 +27,13 @@ import { FieldValueCell } from "./FieldValueCell";
 
 interface Props {
   inquiryId: number;
-  /** 項目クリック時にInspector（SCR-04）を開く。Phase 10で接続する。 */
+  /** 項目クリック時にInspector（SCR-04）を開く */
   onOpenField?: (field: FieldRead, itemNo?: number) => void;
   onOpenOverview?: () => void;
+  /** 下部アクションバー（確定/出力/資料追加）。Screen側がAPI接続して渡す */
+  actionBar?: ReactNode;
+  /** 確定済みを再編集したときの注意表示（mockup: reeditBanner） */
+  showReeditBanner?: boolean;
 }
 
 function NotesList({ notes }: { notes: NoteRead[] }) {
@@ -58,7 +63,13 @@ function NotesList({ notes }: { notes: NoteRead[] }) {
 }
 
 /** SCR-03 引合詳細（サマリー・確認）。mockup.html #SCR-03 の移植。 */
-export function InquiryDetailPage({ inquiryId, onOpenField, onOpenOverview }: Props) {
+export function InquiryDetailPage({
+  inquiryId,
+  onOpenField,
+  onOpenOverview,
+  actionBar,
+  showReeditBanner,
+}: Props) {
   const { t } = useTranslation();
   const router = useRouter();
   const query = useInquiryDetail(inquiryId);
@@ -140,6 +151,12 @@ export function InquiryDetailPage({ inquiryId, onOpenField, onOpenOverview }: Pr
         />
       </Box>
 
+      {showReeditBanner ? (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          {t("detail.reeditBanner")}
+        </Alert>
+      ) : null}
+
       <Typography variant="h2" sx={{ fontSize: 16, fontWeight: 700, mb: 1 }}>
         {t("detail.caseSummary")}
       </Typography>
@@ -214,15 +231,17 @@ export function InquiryDetailPage({ inquiryId, onOpenField, onOpenOverview }: Pr
         {noteTab === 0 ? <NotesList notes={case_notes} /> : <NotesList notes={itemNotes} />}
       </Paper>
 
-      <Box sx={{ display: "flex", gap: 1 }}>
-        <Button
-          variant="outlined"
-          color="inherit"
-          onClick={() => router.push(`/inquiries/${inquiryId}/add-files`)}
-        >
-          {t("detail.addFiles")}
-        </Button>
-      </Box>
+      {actionBar ?? (
+        <Box sx={{ display: "flex", gap: 1 }}>
+          <Button
+            variant="outlined"
+            color="inherit"
+            onClick={() => router.push(`/inquiries/${inquiryId}/add-files`)}
+          >
+            {t("detail.addFiles")}
+          </Button>
+        </Box>
+      )}
     </Box>
   );
 }

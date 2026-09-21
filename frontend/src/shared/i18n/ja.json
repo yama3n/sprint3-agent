@@ -102,7 +102,19 @@
     "addFiles": "資料を追加",
     "confirm": "確定する",
     "export": "出力する",
-    "reeditBanner": "確定済みの内容を変更しました。再度出力してください。"
+    "reeditBanner": "確定済みの内容を変更しました。再度出力してください。",
+    "confirmModalTitle": "この引合を確定しますか？",
+    "confirmModalBody": "状態が「確定済み」に変わります。確定後も値の再編集は可能です（再編集時は注意表示が出ます）。",
+    "confirmModalCancel": "キャンセル",
+    "confirmModalOk": "確定する",
+    "exportModalTitle": "出力形式を選択",
+    "exportModalExcel": "Excel（Item List）",
+    "exportModalWord": "Word（準備中）",
+    "exportModalPdf": "PDF（準備中）",
+    "exportModalStart": "出力開始",
+    "exportDone": "出力しました。ダウンロードを開始します。",
+    "confirmError": "確定に失敗しました。時間をおいて再度お試しください",
+    "exportError": "出力に失敗しました。時間をおいて再度お試しください"
   },
   "inspector": {
     "close": "閉じる",

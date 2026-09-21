@@ -179,3 +179,25 @@ class FieldUpdateResponse(BaseModel):
     reason_type: ReasonType | None = None
     confirmed_by: Literal["user"] = "user"
     is_web_supplemented: bool
+
+
+# --- FUNC-09 成果物確定 / FUNC-05 成果物生成 ---
+
+
+class ConfirmResponse(BaseModel):
+    """POST /inquiries/{id}/confirm のレスポンス（05-api-ipo.md）。"""
+
+    inquiry_id: int
+    status: Literal["final"] = "final"
+    confirmed_at: datetime.datetime
+
+
+class ExportRequest(BaseModel):
+    """Scope 1 で有効なのは excel のみ（word/pdf は Scope 2。400 UNSUPPORTED_FORMAT）。"""
+
+    format: Literal["excel", "word", "pdf"] = "excel"
+
+
+class ExportResponse(BaseModel):
+    export_id: int
+    file_name: str
