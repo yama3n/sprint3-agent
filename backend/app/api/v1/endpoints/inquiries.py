@@ -6,6 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.schemas.inquiry import (
     AgentStatusResponse,
+    FieldUpdateRequest,
+    FieldUpdateResponse,
     InquiryDetailResponse,
     InquiryListResponse,
     UploadResponse,
@@ -17,7 +19,12 @@ from app.services.agent_orchestrator import (
     orchestrate_additional_upload,
     orchestrate_new_upload,
 )
-from app.services.inquiry_service import AgentStatusNotFoundError, InquiryNotFoundError
+from app.services.inquiry_service import (
+    AgentStatusNotFoundError,
+    FieldNotFoundError,
+    InquiryNotFoundError,
+    ItemNotFoundError,
+)
 from app.services.inquiry_upload_service import (
     NoFilesError,
     UnsupportedFileTypeError,
@@ -136,6 +143,69 @@ async def get_agent_status(
     except AgentStatusNotFoundError:
         raise HTTPException(
             status.HTTP_404_NOT_FOUND, detail="AGENT_STATUS_NOT_FOUND"
+        ) from None
+
+
+@router.patch("/{inquiry_id}/fields/{field_id}", response_model=FieldUpdateResponse)
+async def update_case_field(
+    inquiry_id: int,
+    field_id: str,
+    payload: FieldUpdateRequest,
+    session: AsyncSession = Depends(get_db),
+    _current_user: str = Depends(get_current_user),
+) -> FieldUpdateResponse:
+    """FUNC-08 A項目の値修正・確定（SCR-04 確認・修正モード）。"""
+    try:
+        return await inquiry_service.update_case_field(
+            session,
+            inquiry_id,
+            field_id,
+            value=payload.value,
+            selected_candidate_id=payload.selected_candidate_id,
+        )
+    except InquiryNotFoundError:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND, detail="INQUIRY_NOT_FOUND"
+        ) from None
+    except FieldNotFoundError:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND, detail="FIELD_NOT_FOUND"
+        ) from None
+
+
+@router.patch(
+    "/{inquiry_id}/items/{item_id}/fields/{field_id}",
+    response_model=FieldUpdateResponse,
+)
+async def update_item_field(
+    inquiry_id: int,
+    item_id: int,
+    field_id: str,
+    payload: FieldUpdateRequest,
+    session: AsyncSession = Depends(get_db),
+    _current_user: str = Depends(get_current_user),
+) -> FieldUpdateResponse:
+    """FUNC-08 B項目（品目ごと）の値修正・確定（SCR-04 確認・修正モード）。"""
+    try:
+        return await inquiry_service.update_item_field(
+            session,
+            inquiry_id,
+            item_id,
+            field_id,
+            value=payload.value,
+            selected_candidate_id=payload.selected_candidate_id,
+        )
+    except InquiryNotFoundError:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND, detail="INQUIRY_NOT_FOUND"
+        ) from None
+    except ItemNotFoundError:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND, detail="ITEM_NOT_FOUND"
+        ) from None
+    except FieldNotFoundError:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND, detail="FIELD_NOT_FOUND"
         ) from None
 
 

@@ -6,6 +6,7 @@ from app.api.v1.schemas.inquiry import (
     AgentStatusResponse,
     CandidateRead,
     FieldRead,
+    FieldUpdateResponse,
     InquiryDetailResponse,
     InquiryHeader,
     InquiryListItem,
@@ -29,6 +30,14 @@ class InquiryNotFoundError(Exception):
 
 
 class AgentStatusNotFoundError(Exception):
+    pass
+
+
+class FieldNotFoundError(Exception):
+    pass
+
+
+class ItemNotFoundError(Exception):
     pass
 
 
@@ -160,4 +169,128 @@ async def get_inquiry_detail(
         items=items,
         case_notes=case_notes,
         review_summary=review_summary,
+    )
+
+
+async def _apply_field_update(
+    session: AsyncSession,
+    row,
+    candidates: list,
+    *,
+    field_id: str,
+    value: str,
+    selected_candidate_id: int | None,
+) -> FieldUpdateResponse:
+    """FUNC-08 担当者による確認・修正の更新ロジック（05-api-ipo.md の5ステップ）。
+
+    (1) selected_candidate_id指定時はその候補のis_selected=true、他はfalse
+    (2) value を更新
+    (3) valueが空文字列なら status=review / reason_type=missing、それ以外は ok / NULL
+    (4) confirmed_by='user'
+    (5) is_web_supplemented を再計算（選んだ候補がsource_type='web'のときのみtrue）
+    """
+    selected_candidate = None
+    if selected_candidate_id is not None:
+        for candidate in candidates:
+            is_selected = candidate.id == selected_candidate_id
+            candidate.is_selected = is_selected
+            if is_selected:
+                selected_candidate = candidate
+
+    row.value = value
+    if value == "":
+        row.status = "review"
+        row.reason_type = "missing"
+    else:
+        row.status = "ok"
+        row.reason_type = None
+    row.confirmed_by = "user"
+    row.is_web_supplemented = (
+        selected_candidate is not None and selected_candidate.source_type == "web"
+    )
+
+    await session.commit()
+
+    return FieldUpdateResponse(
+        field_id=field_id,
+        value=row.value,
+        status=row.status,
+        reason_type=row.reason_type,
+        confirmed_by="user",
+        is_web_supplemented=row.is_web_supplemented,
+    )
+
+
+async def update_case_field(
+    session: AsyncSession,
+    inquiry_id: int,
+    field_id: str,
+    *,
+    value: str,
+    selected_candidate_id: int | None = None,
+) -> FieldUpdateResponse:
+    """PATCH /inquiries/{inquiry_id}/fields/{field_id}（A項目）。"""
+    inquiry = await InquiryRepository(session).get(inquiry_id)
+    if inquiry is None:
+        raise InquiryNotFoundError(inquiry_id)
+
+    definition = await FieldDefinitionRepository(session).get_by_field_id(field_id)
+    if definition is None or definition.scope != "case":
+        raise FieldNotFoundError(field_id)
+
+    row = await InquiryFieldRepository(session).get_by_inquiry_and_field(
+        inquiry_id, definition.id
+    )
+    if row is None:
+        raise FieldNotFoundError(field_id)
+
+    candidates = await FieldCandidateRepository(session).list_by_inquiry_field(row.id)
+    return await _apply_field_update(
+        session,
+        row,
+        candidates,
+        field_id=field_id,
+        value=value,
+        selected_candidate_id=selected_candidate_id,
+    )
+
+
+async def update_item_field(
+    session: AsyncSession,
+    inquiry_id: int,
+    item_id: int,
+    field_id: str,
+    *,
+    value: str,
+    selected_candidate_id: int | None = None,
+) -> FieldUpdateResponse:
+    """PATCH /inquiries/{inquiry_id}/items/{item_id}/fields/{field_id}（B項目）。"""
+    inquiry = await InquiryRepository(session).get(inquiry_id)
+    if inquiry is None:
+        raise InquiryNotFoundError(inquiry_id)
+
+    item = await InquiryItemRepository(session).get(item_id)
+    if item is None or item.inquiry_id != inquiry_id:
+        raise ItemNotFoundError(item_id)
+
+    definition = await FieldDefinitionRepository(session).get_by_field_id(field_id)
+    if definition is None or definition.scope != "item":
+        raise FieldNotFoundError(field_id)
+
+    row = await InquiryItemFieldRepository(session).get_by_item_and_field(
+        item_id, definition.id
+    )
+    if row is None:
+        raise FieldNotFoundError(field_id)
+
+    candidates = await FieldCandidateRepository(session).list_by_inquiry_item_field(
+        row.id
+    )
+    return await _apply_field_update(
+        session,
+        row,
+        candidates,
+        field_id=field_id,
+        value=value,
+        selected_candidate_id=selected_candidate_id,
     )

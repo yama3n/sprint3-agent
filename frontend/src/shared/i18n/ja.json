@@ -103,5 +103,27 @@
     "confirm": "確定する",
     "export": "出力する",
     "reeditBanner": "確定済みの内容を変更しました。再度出力してください。"
+  },
+  "inspector": {
+    "close": "閉じる",
+    "back": "一覧へ戻る",
+    "overviewTitle": "要確認項目",
+    "overviewEmpty": "確認が必要な項目はありません",
+    "eyebrowEvidence": "根拠確認",
+    "eyebrowReview": "要確認",
+    "candidates": "候補",
+    "noCandidates": "候補となる記載が見つかりませんでした",
+    "source": "出典",
+    "sourceWeb": "Web参照",
+    "referencedAt": "参照日時",
+    "correctedFrom": "訂正前: {{value}}",
+    "confirmedValue": "確定する値",
+    "confirmButton": "この値を確定する",
+    "useCandidate": "この候補を使う",
+    "selected": "選択中",
+    "emptyConfirmWarning": "値が空のため、この項目は要確認（情報が見つかりません）のまま保持されます。",
+    "confirmed": "確定しました",
+    "updateError": "確定に失敗しました。時間をおいて再度お試しください",
+    "itemLabel": "品目{{itemNo}}"
   }
 }

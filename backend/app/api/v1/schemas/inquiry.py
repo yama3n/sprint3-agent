@@ -160,3 +160,22 @@ class InquiryDetailResponse(BaseModel):
     items: list[ItemRead]
     case_notes: list[NoteRead]
     review_summary: ReviewSummary
+
+
+# --- PATCH .../fields/{field_id}（FUNC-08 担当者による確認・修正 / SCR-04）---
+
+
+class FieldUpdateRequest(BaseModel):
+    """05-api-ipo.md: value は必須（空文字列も許容）。候補選択時のみ selected_candidate_id。"""
+
+    value: str
+    selected_candidate_id: int | None = None
+
+
+class FieldUpdateResponse(BaseModel):
+    field_id: str
+    value: str
+    status: FieldStatus
+    reason_type: ReasonType | None = None
+    confirmed_by: Literal["user"] = "user"
+    is_web_supplemented: bool
