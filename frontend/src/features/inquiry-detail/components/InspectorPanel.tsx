@@ -45,6 +45,7 @@ interface Props {
   }) => Promise<boolean>;
   isSaving: boolean;
   saveError: string | null;
+  allowFinalEdit?: boolean;
 }
 
 function SourceLine({ candidate }: { candidate: CandidateRead }) {
@@ -128,15 +129,17 @@ function FieldDetail({
   onConfirm,
   isSaving,
   saveError,
+  allowFinalEdit,
 }: {
   field: FieldRead;
   itemId?: number;
   onConfirm: Props["onConfirm"];
   isSaving: boolean;
   saveError: string | null;
+  allowFinalEdit: boolean;
 }) {
   const { t } = useTranslation();
-  const editable = inspectorModeOf(field) === "review";
+  const editable = allowFinalEdit || inspectorModeOf(field) === "review";
   const [draftValue, setDraftValue] = useState(field.value ?? "");
   const [selectedCandidateId, setSelectedCandidateId] = useState<number | undefined>(
     field.candidates?.find((c) => c.is_selected)?.id,
@@ -244,6 +247,7 @@ export function InspectorPanel({
   onConfirm,
   isSaving,
   saveError,
+  allowFinalEdit = false,
 }: Props) {
   const { t } = useTranslation();
   const field = state.mode === "field" ? state.field : null;
@@ -324,6 +328,7 @@ export function InspectorPanel({
           onConfirm={onConfirm}
           isSaving={isSaving}
           saveError={saveError}
+          allowFinalEdit={allowFinalEdit}
         />
       ) : null}
     </Drawer>

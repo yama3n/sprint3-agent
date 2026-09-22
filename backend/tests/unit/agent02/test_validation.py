@@ -49,6 +49,13 @@ def test_validate_field_decision_review_missing_allows_zero_candidates() -> None
     assert validate_field_decision(state) == []
 
 
+def test_validate_field_decision_review_parse_error_allows_zero_candidates() -> None:
+    state = FieldState(
+        field_id="requester", status="review", reason_type="parse_error", candidates=[]
+    )
+    assert validate_field_decision(state) == []
+
+
 def test_validate_field_decision_review_conflict_requires_candidates() -> None:
     state = FieldState(
         field_id="requester", status="review", reason_type="conflict", candidates=[]

@@ -177,6 +177,14 @@ async def evaluate_explicit_correction(args: dict[str, Any]) -> dict[str, Any]:
 async def classify_status(args: dict[str, Any]) -> dict[str, Any]:
     inquiry_id = args["inquiry_id"]
     agent_state = state.get_state(inquiry_id)
+    # 最初の分類処理に入った時点を「要確認項目整理中」として公開する。
+    # Claudeの意味判断は変更せず、決定論的な進捗表示だけを更新する。
+    async with AsyncSessionLocal() as session:
+        latest_run = await AgentRunRepository(session).get_latest_by_inquiry(inquiry_id)
+        if latest_run is not None and latest_run.status == "running":
+            latest_run.stage = "reviewing"
+            latest_run.progress_percent = max(latest_run.progress_percent, 80)
+            await session.commit()
     updated = []
     for decision in args["decisions"]:
         field_id = decision["field_id"]
@@ -199,7 +207,7 @@ async def classify_status(args: dict[str, Any]) -> dict[str, Any]:
 
 @tool(
     "web_search_company_info",
-    "status=missingの項目のうち、公開情報で客観的に確認可能な企業情報項目に限り、組み込みの"
+    "status=missingの項目のうち、公開情報で客観的に確認可能な企業情報・市況に限り、組み込みの"
     "WebSearchツールで調べた結果を登録する。対象を一意に特定できた場合のみ呼ぶこと"
     "（同名候補が複数・情報源不明瞭な場合は呼ばず要確認のまま保持する）。",
     WEB_SEARCH_COMPANY_INFO_SCHEMA,
@@ -261,6 +269,16 @@ def _parse_inquiry_date(value: str | None) -> datetime | None:
         return datetime(year, month, day, tzinfo=UTC)
     try:
         parsed = datetime.fromisoformat(normalized.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return parsed if parsed.tzinfo is not None else parsed.replace(tzinfo=UTC)
+
+
+def _parse_iso_datetime(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
     except ValueError:
         return None
     return parsed if parsed.tzinfo is not None else parsed.replace(tzinfo=UTC)
@@ -329,9 +347,13 @@ async def _persist_field(
             "quoted_text": candidate.get("quoted_text"),
             "web_url": candidate.get("web_url"),
             "web_source_name": candidate.get("web_source_name"),
+            "web_referenced_at": _parse_iso_datetime(
+                candidate.get("web_referenced_at")
+            ),
             "is_explicit_correction": candidate.get("is_explicit_correction", False),
             "superseded_value": candidate.get("superseded_value"),
-            "is_selected": candidate.get("value") == value,
+            # 要確認項目では候補の一方を自動採用した表示にしない。
+            "is_selected": status == "ok" and candidate.get("value") == value,
         }
         if inquiry_item_id is not None:
             kwargs["inquiry_item_field_id"] = row.id
@@ -459,6 +481,64 @@ async def save_structured_result(args: dict[str, Any]) -> dict[str, Any]:
             "field_count": len(agent_state.fields),
         }
     )
+
+
+async def persist_partial_structured_result(inquiry_id: int) -> int:
+    """強制停止時に、AGENT-02が既に受け付けた項目だけを未完了状態で保存する。"""
+    agent_state = state.get_state(inquiry_id)
+    if not agent_state.fields:
+        return 0
+
+    async with AsyncSessionLocal() as session:
+        inquiry = await InquiryRepository(session).get(inquiry_id)
+        if inquiry is None:
+            return 0
+        field_def_id_by_field_id = {
+            f.field_id: f.id for f in await FieldDefinitionRepository(session).list()
+        }
+        existing = agent_state.existing or {}
+        existing_case = existing.get("case_fields", {})
+        existing_items = existing.get("items", {})
+        item_repo = InquiryItemRepository(session)
+        existing_db_items = {
+            item.item_no: item for item in await item_repo.list_by_inquiry(inquiry_id)
+        }
+
+        saved = 0
+        for (field_id, item_no), field_state in agent_state.fields.items():
+            # classify_status未実行の値を自動採用しない。候補・Evidenceは保持する。
+            if field_state.status is None:
+                field_state.value = None
+                field_state.status = "review"
+                field_state.reason_type = "parse_error"
+            if item_no is None:
+                await _persist_field(
+                    session,
+                    field_def_id_by_field_id,
+                    field_state,
+                    inquiry_id=inquiry_id,
+                    existing_case_or_item=existing_case,
+                )
+            else:
+                db_item = existing_db_items.get(item_no)
+                if db_item is None:
+                    db_item = await item_repo.add(
+                        InquiryItem(inquiry_id=inquiry_id, item_no=item_no)
+                    )
+                    await session.flush()
+                    existing_db_items[item_no] = db_item
+                await _persist_field(
+                    session,
+                    field_def_id_by_field_id,
+                    field_state,
+                    inquiry_item_id=db_item.id,
+                    existing_case_or_item=existing_items.get(str(item_no), {}),
+                )
+            saved += 1
+
+        await session.commit()
+    state.clear_state(inquiry_id)
+    return saved
 
 
 AGENT02_TOOLS = [

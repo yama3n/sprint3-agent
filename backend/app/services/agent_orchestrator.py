@@ -17,8 +17,10 @@ from typing import Literal
 
 from app.agent import jobs
 from app.agent.agent01.definition import AGENT01_SPEC
+from app.agent.agent01.tools import persist_partial_extraction_result
 from app.agent.agent02.definition import AGENT02_SPEC
 from app.agent.agent02 import state as agent02_state
+from app.agent.agent02.tools import persist_partial_structured_result
 from app.core.db import AsyncSessionLocal
 from app.models.agent_run import AgentRun
 from app.models.inquiry import InquiryFile
@@ -77,6 +79,7 @@ async def _mark_failed(agent_run_id: int, job_status: str) -> None:
             agent_run.error_message = (
                 f"強制停止（{job_status}）。一部項目の処理が途中で停止しました。"
             )
+            agent_run.finished_at = datetime.now(UTC)
         else:
             agent_run.status = "failed"
             agent_run.stage = "failed"
@@ -99,7 +102,15 @@ async def _orchestrate(
     )
     job1 = await _await_job(run_id_1)
     if job1 is None or job1.status != "completed":
-        await _mark_failed(agent_run_1_id, job1.status if job1 else "failed")
+        job_status = job1.status if job1 else "failed"
+        if job_status in _STOPPED_REASONS:
+            await persist_partial_extraction_result(
+                inquiry_id,
+                agent_run_1_id,
+                [file.file_name for file in files],
+                job_status,
+            )
+        await _mark_failed(agent_run_1_id, job_status)
         return
 
     async with AsyncSessionLocal() as session:
@@ -124,6 +135,13 @@ async def _orchestrate(
             agent_run_1.status = "succeeded"
             agent_run_1.stage = "completed"
             agent_run_1.progress_percent = 55
+            if extraction_payload.get("parse_errors"):
+                failed_files = ", ".join(
+                    error["file_name"] for error in extraction_payload["parse_errors"]
+                )
+                agent_run_1.error_message = (
+                    f"一部ファイルの解析に失敗しました: {failed_files}"
+                )
             agent_run_1.finished_at = datetime.now(UTC)
         agent_run_2 = await AgentRunRepository(session).add(
             AgentRun(
@@ -149,7 +167,10 @@ async def _orchestrate(
     )
     job2 = await _await_job(run_id_2)
     if job2 is None or job2.status != "completed":
-        await _mark_failed(agent_run_2_id, job2.status if job2 else "failed")
+        job_status = job2.status if job2 else "failed"
+        if job_status in _STOPPED_REASONS:
+            await persist_partial_structured_result(inquiry_id)
+        await _mark_failed(agent_run_2_id, job_status)
         return
 
     # AGENT-02が正本テーブルへの保存まで完了した時点で引き渡しデータを消費済みにする。

@@ -87,6 +87,16 @@ describe("InspectorPanel (SCR-04)", () => {
     expect(screen.getAllByRole("button", { name: "この候補を使う" })).toHaveLength(2);
   });
 
+  it("allows an ok field to be edited after the inquiry is final (TEST-20)", () => {
+    renderPanel(
+      { mode: "field", field: field() as never },
+      { allowFinalEdit: true },
+    );
+
+    expect(screen.getByLabelText("確定する値")).toHaveValue("東西石油開発株式会社");
+    expect(screen.getByRole("button", { name: "この値を確定する" })).toBeInTheDocument();
+  });
+
   it("confirms the picked candidate value", async () => {
     const props = renderPanel({
       mode: "field",

@@ -1,5 +1,6 @@
 import json
 import uuid
+from pathlib import Path
 
 import openpyxl
 import pytest
@@ -108,6 +109,28 @@ async def test_parse_excel_tool_persists_parsed_document_and_returns_content(
 async def test_parse_excel_tool_returns_error_for_unknown_file() -> None:
     response = await parse_excel.handler({"file_id": 999999999})
     assert response.get("is_error") is True
+
+
+async def test_parse_excel_tool_records_parse_error_for_partial_result(
+    db_session: AsyncSession, tmp_path, created_inquiry_ids: list[int]
+) -> None:
+    inquiry_id, file_id = await _make_inquiry_with_excel_file(
+        db_session, tmp_path, created_inquiry_ids
+    )
+    inquiry_file = await InquiryFileRepository(db_session).get(file_id)
+    assert inquiry_file is not None
+    Path(inquiry_file.storage_path).write_bytes(b"not an xlsx")
+
+    response = await parse_excel.handler({"file_id": file_id})
+
+    assert response.get("is_error") is True
+    assert state.get_state(inquiry_id).parse_errors == [
+        {
+            "file_name": "order.xlsx",
+            "file_type": "excel",
+            "error": state.get_state(inquiry_id).parse_errors[0]["error"],
+        }
+    ]
 
 
 async def test_extraction_pipeline_end_to_end_persists_extraction_result(

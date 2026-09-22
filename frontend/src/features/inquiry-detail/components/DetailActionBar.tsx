@@ -94,7 +94,10 @@ export function DetailActionBar({
             disabled={isConfirming}
             onClick={async () => {
               const ok = await onConfirm();
-              if (ok) setConfirmOpen(false);
+              if (ok) {
+                setConfirmOpen(false);
+                setExportOpen(true);
+              }
             }}
           >
             {t("detail.confirmModalOk")}

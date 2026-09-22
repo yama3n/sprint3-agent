@@ -47,7 +47,7 @@ def validate_field_decision(state: FieldState) -> list[str]:
     else:  # review
         if state.reason_type not in REASON_TYPES:
             errors.append(f"{label}: status=reviewだがreason_typeが不正です")
-        elif state.reason_type != "missing" and not state.candidates:
+        elif state.reason_type not in ("missing", "parse_error") and not state.candidates:
             errors.append(
                 f"{label}: reason_type={state.reason_type}だが候補が1件もありません"
             )

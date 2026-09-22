@@ -201,6 +201,7 @@ export function InquiryDetailScreen({ inquiryId }: { inquiryId: number }) {
         onConfirm={handleConfirm}
         isSaving={updateCaseField.isPending || updateItemField.isPending}
         saveError={saveError}
+        allowFinalEdit={detail?.inquiry.status === "final"}
       />
     </>
   );

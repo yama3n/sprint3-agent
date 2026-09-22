@@ -64,6 +64,9 @@ async def parse_excel(args: dict[str, Any]) -> dict[str, Any]:
         except (
             Exception
         ) as e:  # 対応形式でも壊れたファイルはparse_error候補としてAGENT-01自身が扱う
+            state.get_state(inquiry_file.inquiry_id).parse_errors.append(
+                {"file_name": file_name, "file_type": "excel", "error": repr(e)}
+            )
             return _error(f"PARSE_ERROR: {e!r}")
         await ParsedDocumentRepository(session).add(
             ParsedDocument(file_id=inquiry_file.id, content=content)
@@ -83,6 +86,9 @@ async def parse_pdf(args: dict[str, Any]) -> dict[str, Any]:
         try:
             content = parse_pdf_file(inquiry_file.storage_path)
         except Exception as e:
+            state.get_state(inquiry_file.inquiry_id).parse_errors.append(
+                {"file_name": file_name, "file_type": "pdf", "error": repr(e)}
+            )
             return _error(f"PARSE_ERROR: {e!r}")
         await ParsedDocumentRepository(session).add(
             ParsedDocument(file_id=inquiry_file.id, content=content)
@@ -104,6 +110,9 @@ async def parse_eml(args: dict[str, Any]) -> dict[str, Any]:
         try:
             content = parse_eml_file(inquiry_file.storage_path)
         except Exception as e:
+            state.get_state(inquiry_file.inquiry_id).parse_errors.append(
+                {"file_name": file_name, "file_type": "eml", "error": repr(e)}
+            )
             return _error(f"PARSE_ERROR: {e!r}")
         await ParsedDocumentRepository(session).add(
             ParsedDocument(file_id=inquiry_file.id, content=content)
@@ -219,6 +228,7 @@ async def emit_extraction_result(args: dict[str, Any]) -> dict[str, Any]:
         **result,
         "item_fields": {str(k): v for k, v in result["item_fields"].items()},
         "item_notes": {str(k): v for k, v in result["item_notes"].items()},
+        "parse_errors": extraction_state.parse_errors,
     }
 
     async with AsyncSessionLocal() as session:
@@ -266,3 +276,51 @@ agent01_server = create_sdk_mcp_server(
 )
 
 AGENT01_ALLOWED_TOOL_NAMES = [f"mcp__agent01__{t.name}" for t in AGENT01_TOOLS]
+
+
+async def persist_partial_extraction_result(
+    inquiry_id: int,
+    agent_run_id: int,
+    source_files: list[str],
+    stop_reason: str,
+) -> bool:
+    """強制停止時に、既に検証・集約済みの抽出候補だけを既存テーブルへ退避する。"""
+    extraction_state = state.get_state(inquiry_id)
+    has_partial_data = any(
+        (
+            extraction_state.case_fields,
+            extraction_state.item_fields,
+            extraction_state.case_notes,
+            extraction_state.item_notes,
+            extraction_state.parse_errors,
+        )
+    )
+    if not has_partial_data:
+        return False
+
+    payload = {
+        "inquiry_id": inquiry_id,
+        "source_files": source_files,
+        "case_fields": extraction_state.case_fields or {},
+        "item_fields": {
+            str(k): v for k, v in (extraction_state.item_fields or {}).items()
+        },
+        "case_notes": extraction_state.case_notes,
+        "item_notes": {
+            str(k): v for k, v in extraction_state.item_notes.items()
+        },
+        "parse_errors": extraction_state.parse_errors,
+        "extraction_complete": False,
+        "stop_reason": stop_reason,
+    }
+    async with AsyncSessionLocal() as session:
+        await ExtractionResultRepository(session).add(
+            ExtractionResult(
+                inquiry_id=inquiry_id,
+                agent_run_id=agent_run_id,
+                payload=payload,
+            )
+        )
+        await session.commit()
+    state.clear_state(inquiry_id)
+    return True

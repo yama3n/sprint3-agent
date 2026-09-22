@@ -10,6 +10,7 @@ from app.agent.agent02.tools import (
     classify_status,
     compare_and_merge_candidates,
     load_existing_inquiry,
+    persist_partial_structured_result,
     save_structured_result,
     web_search_company_info,
 )
@@ -200,6 +201,11 @@ async def test_pipeline_saves_structured_result_for_new_upload(
     )
     assert classify_result.get("is_error") is not True
 
+    async with AsyncSessionLocal() as progress_session:
+        running = await progress_session.get(AgentRun, agent_run_id)
+        assert running.stage == "reviewing"
+        assert running.progress_percent == 80
+
     save_result = await save_structured_result.handler(
         {"inquiry_id": inquiry_id, "agent_run_id": agent_run_id}
     )
@@ -233,6 +239,114 @@ async def test_pipeline_saves_structured_result_for_new_upload(
             )
         ).scalars().all()
         assert {note.content for note in notes} == {"輸送条件は別途協議", "品目注記"}
+
+
+async def test_stop_persists_only_registered_agent02_fields_as_unfinished(
+    db_session: AsyncSession, created_inquiry_ids: list[int]
+) -> None:
+    inquiry_id, _ = await _make_inquiry(db_session, created_inquiry_ids)
+    merge_result = await compare_and_merge_candidates.handler(
+        {
+            "inquiry_id": inquiry_id,
+            "fields": [
+                {
+                    "field_id": "requester",
+                    "value": "未判定株式会社",
+                    "candidates": [
+                        {
+                            "value": "未判定株式会社",
+                            "source_type": "pdf",
+                            "source_file": "partial.pdf",
+                            "source_location": "1ページ",
+                            "quoted_text": "未判定株式会社",
+                        }
+                    ],
+                }
+            ],
+        }
+    )
+    assert merge_result.get("is_error") is not True
+
+    saved_count = await persist_partial_structured_result(inquiry_id)
+    assert saved_count == 1
+
+    async with AsyncSessionLocal() as session:
+        definition = next(
+            field
+            for field in await FieldDefinitionRepository(session).list()
+            if field.field_id == "requester"
+        )
+        row = await InquiryFieldRepository(session).get_by_inquiry_and_field(
+            inquiry_id, definition.id
+        )
+        assert row is not None
+        assert row.value is None
+        assert row.status == "review"
+        assert row.reason_type == "parse_error"
+        candidates = (
+            await session.execute(
+                select(FieldCandidate).where(
+                    FieldCandidate.inquiry_field_id == row.id
+                )
+            )
+        ).scalars().all()
+        assert [candidate.value for candidate in candidates] == ["未判定株式会社"]
+        assert candidates[0].is_selected is False
+
+
+async def test_multiple_candidates_are_persisted_unselected_for_review(
+    db_session: AsyncSession, created_inquiry_ids: list[int]
+) -> None:
+    inquiry_id, agent_run_id = await _make_inquiry(db_session, created_inquiry_ids)
+    case_payload = _minimal_case_fields_payload(inquiry_id, "候補A")
+    case_payload["fields"][0]["value"] = None
+    case_payload["fields"][0]["candidates"] = [
+        {
+            "value": value,
+            "source_type": "pdf",
+            "source_file": "alternatives.pdf",
+            "source_location": "1ページ",
+            "quoted_text": "候補Aまたは候補B",
+        }
+        for value in ("候補A", "候補B")
+    ]
+    assert (await compare_and_merge_candidates.handler(case_payload)).get("is_error") is not True
+    assert (
+        await compare_and_merge_candidates.handler(
+            _minimal_item_fields_payload(inquiry_id, 1)
+        )
+    ).get("is_error") is not True
+    decisions = _classify_all_missing(inquiry_id, 1)
+    decisions["decisions"][0] = {
+        "field_id": "requester",
+        "status": "review",
+        "reason_type": "multiple_candidates",
+    }
+    assert (await classify_status.handler(decisions)).get("is_error") is not True
+    assert (
+        await save_structured_result.handler(
+            {"inquiry_id": inquiry_id, "agent_run_id": agent_run_id}
+        )
+    ).get("is_error") is not True
+
+    async with AsyncSessionLocal() as session:
+        definition = next(
+            field
+            for field in await FieldDefinitionRepository(session).list()
+            if field.field_id == "requester"
+        )
+        row = await InquiryFieldRepository(session).get_by_inquiry_and_field(
+            inquiry_id, definition.id
+        )
+        assert row.status == "review"
+        assert row.reason_type == "multiple_candidates"
+        candidates = (
+            await session.execute(
+                select(FieldCandidate).where(FieldCandidate.inquiry_field_id == row.id)
+            )
+        ).scalars().all()
+        assert {candidate.value for candidate in candidates} == {"候補A", "候補B"}
+        assert all(candidate.is_selected is False for candidate in candidates)
 
 
 async def test_confirmed_by_user_value_is_protected_on_conflicting_reupload(
@@ -340,20 +454,27 @@ async def test_web_search_company_info_rejects_disallowed_field(
 async def test_web_search_company_info_updates_missing_field_to_ok(
     db_session: AsyncSession, created_inquiry_ids: list[int]
 ) -> None:
-    inquiry_id, _ = await _make_inquiry(db_session, created_inquiry_ids)
+    inquiry_id, agent_run_id = await _make_inquiry(db_session, created_inquiry_ids)
+    case_payload = _minimal_case_fields_payload(inquiry_id, "unused")
+    case_payload["fields"][0] = {
+        "field_id": "requester",
+        "value": None,
+        "candidates": [],
+    }
     await compare_and_merge_candidates.handler(
-        {
-            "inquiry_id": inquiry_id,
-            "fields": [{"field_id": "requester", "value": None, "candidates": []}],
-        }
+        case_payload
     )
+    await compare_and_merge_candidates.handler(
+        _minimal_item_fields_payload(inquiry_id, 1)
+    )
+    decisions = _classify_all_missing(inquiry_id, 1)
+    decisions["decisions"][0] = {
+        "field_id": "requester",
+        "status": "review",
+        "reason_type": "missing",
+    }
     await classify_status.handler(
-        {
-            "inquiry_id": inquiry_id,
-            "decisions": [
-                {"field_id": "requester", "status": "review", "reason_type": "missing"}
-            ],
-        }
+        decisions
     )
 
     response = await web_search_company_info.handler(
@@ -363,9 +484,69 @@ async def test_web_search_company_info_updates_missing_field_to_ok(
             "value": "東西石油開発株式会社",
             "url": "https://tozai-sekiyu.example.com",
             "source_name": "東西石油開発 公式サイト",
+            "referenced_at": "2026-09-22T09:00:00+09:00",
         }
     )
     assert response.get("is_error") is not True
     field_state = state.get_state(inquiry_id).fields[("requester", None)]
+    assert field_state.status == "ok"
+    assert field_state.is_web_supplemented is True
+    assert (
+        await save_structured_result.handler(
+            {"inquiry_id": inquiry_id, "agent_run_id": agent_run_id}
+        )
+    ).get("is_error") is not True
+
+    async with AsyncSessionLocal() as session:
+        definition = next(
+            field
+            for field in await FieldDefinitionRepository(session).list()
+            if field.field_id == "requester"
+        )
+        row = await InquiryFieldRepository(session).get_by_inquiry_and_field(
+            inquiry_id, definition.id
+        )
+        candidates = (
+            await session.execute(
+                select(FieldCandidate).where(FieldCandidate.inquiry_field_id == row.id)
+            )
+        ).scalars().all()
+        assert candidates[0].web_referenced_at is not None
+
+
+async def test_web_search_company_info_allows_public_market_condition(
+    db_session: AsyncSession, created_inquiry_ids: list[int]
+) -> None:
+    inquiry_id, _ = await _make_inquiry(db_session, created_inquiry_ids)
+    await compare_and_merge_candidates.handler(
+        {
+            "inquiry_id": inquiry_id,
+            "fields": [{"field_id": "market_condition", "value": None, "candidates": []}],
+        }
+    )
+    await classify_status.handler(
+        {
+            "inquiry_id": inquiry_id,
+            "decisions": [
+                {
+                    "field_id": "market_condition",
+                    "status": "review",
+                    "reason_type": "missing",
+                }
+            ],
+        }
+    )
+
+    response = await web_search_company_info.handler(
+        {
+            "inquiry_id": inquiry_id,
+            "field_id": "market_condition",
+            "value": "公開市場レポートに基づく市況",
+            "url": "https://example.com/market-report",
+            "source_name": "公開市場レポート",
+        }
+    )
+    assert response.get("is_error") is not True
+    field_state = state.get_state(inquiry_id).fields[("market_condition", None)]
     assert field_state.status == "ok"
     assert field_state.is_web_supplemented is True

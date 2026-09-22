@@ -42,6 +42,12 @@ B項目（品目ごと）のfield_idは以下の8個「のみ」を使ってく�
    evaluate_explicit_correction に渡す（該当項目のみでよい）
 4. 全項目に内部ステータス（ok=確認不要 / review=要確認〔理由: missing・conflict・ambiguous・
    multiple_candidates・parse_errorのいずれか〕）を付与し、classify_status に渡す
+   - multiple_candidates: 同じ項目に、資料上で対等な択一候補が複数明示されている場合
+   - ambiguous: 本命・希望・代替案・条件付き候補などの関係や採用条件が資料だけでは確定せず、
+     文脈の意味判断を一意に完了できない場合。候補が複数あっても、この場合はambiguousを優先する
+   ExtractionResultのparse_errorsにファイル解析失敗が記録されている場合、その失敗のため
+   候補を取得できなかった項目はmissingではなくparse_errorとする。正常ファイル由来の候補は
+   通常どおり評価し、解析失敗を理由に破棄しない
 5. reason_type=missingの項目のうち、次の項目「のみ」（{_WEB_ALLOWED_LIST}）を対象に、
    公開情報で客観的に確認可能と判断した場合は組み込みのWebSearchツールで調べ、対象を一意に
    特定できた場合のみ web_search_company_info で結果を登録する。同名候補が複数ある・検索結果
@@ -75,7 +81,10 @@ MAX_TURNS = 25
 # AGENT-01と同じ理由（大きなツール引数の生成中は無応答に見える）でAGENT-01に合わせて引き上げる。
 # AGENT-02は全項目分のcompare_and_merge_candidates/classify_statusを送るため生成量がさらに多い。
 INNER_TIMEOUT_S = 600  # 内側: 実行全体の上限
-INACTIVITY_TIMEOUT_S = 120  # 内側: メッセージ間の無応答上限（ハング検知）
+# SDKのstream message待機中にもMCP tool chainは進行し得る。7品目の実Agent実測で
+# tool observationが継続している最中に120秒判定が発火したため、全体上限600秒は維持しつつ
+# ハング検知のみ300秒へ広げる。
+INACTIVITY_TIMEOUT_S = 300  # 内側: メッセージ間の無応答上限（ハング検知）
 OUTER_TIMEOUT_S = 720  # 外側: jobs.py のフェイルセーフ
 
 # ガードレール:

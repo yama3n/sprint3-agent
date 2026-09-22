@@ -79,7 +79,7 @@
     "stageReviewing": "要確認項目整理中…",
     "stageCompleted": "完了",
     "stageFailed": "解析に失敗しました",
-    "stageStopped": "処理が途中で停止しました",
+    "stageStopped": "解析停止",
     "uploadError": "アップロードに失敗しました。ファイルを確認して再度お試しください",
     "goToDetail": "引合詳細を開く"
   },

@@ -55,6 +55,7 @@ describe("DetailActionBar (SCR-03 アクションバー)", () => {
     await user.click(buttons[buttons.length - 1]);
 
     expect(onConfirm).toHaveBeenCalled();
+    expect(await screen.findByText("出力形式を選択")).toBeInTheDocument();
   });
 
   it("offers Excel only, with Word/PDF disabled (Scope 1 / TEST-24)", async () => {

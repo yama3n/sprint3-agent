@@ -9,7 +9,7 @@ from app.agent.agent01.validation import (
 )
 
 
-def _candidate(field_id: str, value: str, **overrides) -> dict:
+def _candidate(field_id: str, value: str | None, **overrides) -> dict:
     base = {
         "field_id": field_id,
         "value": value,
@@ -68,6 +68,21 @@ def test_build_item_fields_rejects_unknown_field_id() -> None:
         build_item_fields(
             [{"item_no": 1, "candidates": [_candidate("requester", "x")]}]
         )
+
+
+def test_null_value_is_not_retained_as_a_candidate() -> None:
+    case_fields = build_case_fields([_candidate("requester", None)])
+    item_fields = build_item_fields(
+        [
+            {
+                "item_no": 1,
+                "candidates": [_candidate("thread_type", None, source_type="excel")],
+            }
+        ]
+    )
+
+    assert case_fields["requester"] == []
+    assert item_fields[1]["thread_type"] == []
 
 
 def test_validate_extraction_result_passes_for_complete_result() -> None:

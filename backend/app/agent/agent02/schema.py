@@ -12,10 +12,10 @@ REASON_TYPES = (
 STATUSES = ("ok", "review")
 
 # FUNC-04: 顧客固有の数量・希望納期・案件固有の要求仕様等はWeb補完の対象外。
-# 公開情報で客観的に確認可能な「企業情報」系の項目のみをWeb補完の対象として許可する
+# 公開情報で客観的に確認可能な企業情報と市況のみをWeb補完の対象として許可する
 # （agent-plan.md 3章ガードレール「してはいけない操作」に対応する構造的制約）。
 WEB_SUPPLEMENT_ALLOWED_CASE_FIELD_IDS = frozenset(
-    {"requester", "engineering_company", "epc", "end_user"}
+    {"requester", "engineering_company", "epc", "end_user", "market_condition"}
 )
 
 # Web検索クエリに含めてはならない語（顧客固有情報の漏洩防止。FUNC-04）

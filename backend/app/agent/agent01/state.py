@@ -15,6 +15,7 @@ class ExtractionState:
     item_fields: dict[int, dict[str, list[dict]]] | None = None
     case_notes: list[dict] = field(default_factory=list)
     item_notes: dict[int, list[dict]] = field(default_factory=dict)
+    parse_errors: list[dict] = field(default_factory=list)
 
 
 _states: dict[int, ExtractionState] = {}

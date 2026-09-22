@@ -43,6 +43,10 @@ def build_case_fields(
     }
     for candidate in candidates:
         _validate_candidate(candidate, CASE_FIELD_IDS)
+        # 値がない記載は evidence にはなっても「候補値」ではない。
+        # 後段が「未定」等の代替文字列を生成して候補化しないよう、候補配列には残さない。
+        if candidate["value"] is None:
+            continue
         result[candidate["field_id"]].append(candidate)
     return result
 
@@ -68,6 +72,8 @@ def build_item_fields(
         )
         for candidate in item.get("candidates", []):
             _validate_candidate(candidate, ITEM_FIELD_IDS)
+            if candidate["value"] is None:
+                continue
             bucket[candidate["field_id"]].append(candidate)
     return result
 
